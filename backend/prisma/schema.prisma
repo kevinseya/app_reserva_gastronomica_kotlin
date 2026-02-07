@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  CLIENT
+}
+
+enum TicketStatus {
+  PENDING
+  PAID
+  USED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      UserRole @default(CLIENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tickets   Ticket[]
+
+  @@map("users")
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  date        DateTime
+  venue       String
+  imageUrl    String?
+  ticketPrice Float
+  totalSeats  Int      @default(100) // 10x10
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  seats       Seat[]
+  tickets     Ticket[]
+
+  @@map("events")
+}
+
+model Seat {
+  id        String   @id @default(uuid())
+  eventId   String
+  row       Int      // 1-10
+  column    Int      // 1-10
+  isOccupied Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ticket    Ticket?
+
+  @@unique([eventId, row, column])
+  @@map("seats")
+}
+
+model Ticket {
+  id              String       @id @default(uuid())
+  userId          String
+  eventId         String
+  seatId          String       @unique
+  qrCode          String       @unique
+  stripePaymentId String?
+  status          TicketStatus @default(PENDING)
+  purchaseDate    DateTime     @default(now())
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  user            User         @relation(fields: [userId], references: [id])
+  event           Event        @relation(fields: [eventId], references: [id])
+  seat            Seat         @relation(fields: [seatId], references: [id])
+
+  @@map("tickets")
+}
