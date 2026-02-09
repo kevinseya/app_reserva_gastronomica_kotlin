@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -151,6 +152,13 @@ fun TicketCard(
     ticket: Ticket,
     onClick: () -> Unit
 ) {
+    val totalPrice = remember(ticket) {
+        val eventPrice = ticket.event?.ticketPrice ?: 0.0
+        val seatPrice = ticket.tableSeat?.price ?: 0.0
+        val foodPrice = ticket.foodItems.sumOf { it.quantity * it.foodItem.price }
+        eventPrice + seatPrice + foodPrice
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -217,14 +225,12 @@ fun TicketCard(
             }
             
             Column(horizontalAlignment = Alignment.End) {
-                ticket.event?.let { event ->
-                    Text(
-                        text = formatPrice(event.ticketPrice),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = DarkBlue
-                    )
-                }
+                Text(
+                    text = formatPrice(totalPrice),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = DarkBlue
+                )
                 if (ticket.event?.date != null) {
                     Text(
                         text = formatDate(ticket.event.date),
