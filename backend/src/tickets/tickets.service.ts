@@ -54,8 +54,10 @@ export class TicketsService {
       }
 
       // Sumar precios: precio base del evento (una sola vez) + precio por asiento (tableSeat.price en centavos)
-      const eventPriceCents = Math.round(event.ticketPrice * 100);
-      const seatsTotalCents = tableSeats.reduce((acc, ts) => acc + (ts.price || 0), 0);
+      // event.ticketPrice is a decimal per ticket; charge it per seat selected
+      const eventPriceCents = Math.round(event.ticketPrice * 100) * createTicketDto.seatIds.length;
+      // tableSeats.price is now stored as decimal (e.g. 4.50), convert to cents
+      const seatsTotalCents = tableSeats.reduce((acc, ts) => acc + Math.round((ts.price || 0) * 100), 0);
       amountCents = eventPriceCents + seatsTotalCents;
     } else {
       // Flujo tradicional: seats grid
@@ -80,6 +82,20 @@ export class TicketsService {
       amountCents = Math.round(event.ticketPrice * 100) * createTicketDto.seatIds.length;
     }
 
+    // Calcular costo de comida si existe
+    let foodTotalCents = 0;
+    if (createTicketDto.foodOrders && createTicketDto.foodOrders.length > 0) {
+      for (const order of createTicketDto.foodOrders) {
+        for (const item of order.foodItems) {
+          const food = await this.prisma.foodItem.findUnique({ where: { id: item.foodId } });
+          if (food) {
+            foodTotalCents += Math.round((food.price || 0) * 100) * item.quantity;
+          }
+        }
+      }
+    }
+    amountCents += foodTotalCents;
+
     // Crear el PaymentIntent en Stripe
     const paymentIntent = await this.stripe.paymentIntents.create({
       amount: amountCents, // valor en centavos
@@ -92,6 +108,8 @@ export class TicketsService {
         eventId: createTicketDto.eventId,
         seatIds: createTicketDto.seatIds.join(','),
         seatCount: createTicketDto.seatIds.length.toString(),
+        // Guardamos la orden de comida como JSON string en metadata para recuperarla al confirmar
+        foodOrders: createTicketDto.foodOrders ? JSON.stringify(createTicketDto.foodOrders) : '',
       },
     });
 
@@ -110,13 +128,14 @@ export class TicketsService {
       throw new BadRequestException('El pago no ha sido completado');
     }
 
-    const { eventId, seatIds } = paymentIntent.metadata || {};
+    const { eventId, seatIds, foodOrders } = paymentIntent.metadata || {};
 
     if (!eventId || !seatIds) {
       throw new BadRequestException('Metadata de pago incompleta');
     }
 
     const seatIdArray = seatIds.split(',');
+    const parsedFoodOrders = foodOrders ? JSON.parse(foodOrders) : [];
 
     // Intentamos detectar si los seatIds pertenecen a table_seats (disposición por mesas)
     const tableSeats = await this.prisma.tableSeat.findMany({
@@ -197,6 +216,21 @@ export class TicketsService {
               },
             },
           });
+
+          // Asociar comida a este ticket específico si hay orden para este asiento
+          const seatOrder = parsedFoodOrders.find((o: any) => o.seatId === ts.id);
+          if (seatOrder && seatOrder.foodItems) {
+            for (const item of seatOrder.foodItems) {
+              await prisma.ticketFood.create({
+                data: {
+                  ticketId: ticket.id,
+                  foodItemId: item.foodId,
+                  quantity: item.quantity,
+                  status: 'PENDING'
+                }
+              });
+            }
+          }
           createdTickets.push(ticket);
         }
 
@@ -206,7 +240,7 @@ export class TicketsService {
       return tickets;
     }
 
-    // Si no son table_seats, seguimos con el flujo tradicional sobre `seats`
+    // Flujo tradicional (Seats Grid)
     const seats = await this.prisma.seat.findMany({
       where: { id: { in: seatIdArray } },
     });
@@ -225,7 +259,8 @@ export class TicketsService {
       userId,
       eventId,
       seatIdArray,
-      paymentIntentId
+      paymentIntentId,
+      parsedFoodOrders
     );
 
     return tickets;
@@ -238,6 +273,7 @@ export class TicketsService {
         event: true,
         seat: true,
         tableSeat: { include: { table: true } },
+        foodItems: { include: { foodItem: true } } // Incluir comida
       },
       orderBy: { purchaseDate: 'desc' },
     });
@@ -250,6 +286,7 @@ export class TicketsService {
         event: true,
         seat: true,
         tableSeat: { include: { table: true } },
+        foodItems: { include: { foodItem: true } },
         user: {
           select: {
             id: true,
@@ -276,7 +313,8 @@ export class TicketsService {
     userId: string,
     eventId: string,
     seatIds: string[],
-    paymentId: string
+    paymentId: string,
+    foodOrders: any[] = []
   ) {
     // Intentamos hacer la menor cantidad de operaciones dentro
     // de la transacción para evitar timeouts. Primero marcamos
@@ -331,6 +369,20 @@ export class TicketsService {
             },
           });
 
+          // Asociar comida
+          const seatOrder = foodOrders.find((o: any) => o.seatId === seatId);
+          if (seatOrder && seatOrder.foodItems) {
+            for (const item of seatOrder.foodItems) {
+              await prisma.ticketFood.create({
+                data: {
+                  ticketId: ticket.id,
+                  foodItemId: item.foodId,
+                  quantity: item.quantity,
+                  status: 'PENDING'
+                }
+              });
+            }
+          }
           createdTickets.push(ticket);
         }
 
@@ -350,6 +402,7 @@ export class TicketsService {
         event: true,
         seat: true,
         tableSeat: true,
+        foodItems: { include: { foodItem: true } }, // Retornar comida al escanear
         user: {
           select: {
             id: true,
@@ -400,6 +453,7 @@ export class TicketsService {
         event: true,
         seat: true,
         tableSeat: { include: { table: true } },
+        foodItems: { include: { foodItem: true } },
         user: {
           select: {
             id: true,

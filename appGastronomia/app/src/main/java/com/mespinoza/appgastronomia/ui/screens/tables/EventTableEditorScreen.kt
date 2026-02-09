@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mespinoza.appgastronomia.data.model.EventTable
+import com.mespinoza.appgastronomia.utils.formatPrice
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,7 +115,7 @@ fun EventTableEditorScreen(
                                         y = r * spacing + 30,
                                         rotation = 0,
                                         capacity = capacity,
-                                        seatPrice = 2000, // Precio por defecto
+                                        seatPrice = 0.0, // Precio por defecto (decimal)
                                         seats = emptyList()
                                     )
                                 )
@@ -288,7 +289,7 @@ fun EventTableEditorScreen(
                                         color = MaterialTheme.colorScheme.surface
                                     )
                                     Text(
-                                        text = "$${table.seatPrice ?: 2000}",
+                                        text = formatPrice(table.seatPrice ?: 0.0),
                                         style = MaterialTheme.typography.bodyMedium, // Más grande
                                         color = MaterialTheme.colorScheme.surface
                                     )
@@ -313,14 +314,14 @@ fun EventTableEditorScreen(
                                     val p = positions[t.id] ?: Offset.Zero
                                     val x = p.x.toInt()
                                     val y = p.y.toInt()
-                                    val created = viewModel.createEventTableSuspend(
+                                        val created = viewModel.createEventTableSuspend(
                                         eventId = eventId,
                                         name = t.name ?: "Mesa",
                                         x = x,
                                         y = y,
                                         rotation = 0,
                                         capacity = t.capacity,
-                                        seatPrice = t.seatPrice ?: 2000
+                                            seatPrice = t.seatPrice ?: 0.0
                                     )
                                     if (!created) okAll = false
                                 }
@@ -373,7 +374,7 @@ fun EventTableEditorScreen(
     // Diálogo para editar mesa individual
     if (showEditDialog && selectedTable != null) {
         var editName by remember { mutableStateOf(selectedTable?.name ?: "") }
-        var editPrice by remember { mutableStateOf((selectedTable?.seatPrice ?: 2000).toString()) }
+        var editPrice by remember { mutableStateOf((selectedTable?.seatPrice ?: 0.0).toString()) }
         var editCapacity by remember { mutableStateOf((selectedTable?.capacity ?: 4).toString()) }
 
         AlertDialog(
@@ -423,7 +424,7 @@ fun EventTableEditorScreen(
                                 table.copy(
                                     name = editName.ifBlank { table.name },
                                     capacity = editCapacity.toIntOrNull() ?: table.capacity,
-                                    seatPrice = editPrice.toIntOrNull() ?: table.seatPrice
+                                    seatPrice = editPrice.toDoubleOrNull() ?: table.seatPrice
                                 )
                             } else {
                                 table

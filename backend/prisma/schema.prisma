@@ -71,6 +71,7 @@ model Ticket {
   seat            Seat?        @relation(fields: [seatId], references: [id])
   tableSeat       TableSeat?   @relation(fields: [tableSeatId], references: [id])
   user            User         @relation(fields: [userId], references: [id])
+  foodItems       TicketFood[]
 
   @@map("tickets")
 }
@@ -110,7 +111,7 @@ model TableSeat {
   id            String       @id @default(uuid())
   tableId       String
   index         Int
-  price         Int
+  price         Float
   reservationId String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -148,7 +149,7 @@ model MenuItem {
   id          String      @id @default(uuid())
   name        String
   description String?
-  price       Int
+  price       Float
   imageUrl    String?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -160,7 +161,7 @@ model MenuItem {
 model Order {
   id              String       @id @default(uuid())
   reservationId   String?
-  total           Int          @default(0)
+  total           Float        @default(0)
   status          String       @default("PENDING")
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
@@ -176,7 +177,7 @@ model OrderItem {
   orderId    String
   menuItemId String
   quantity   Int      @default(1)
-  price      Int
+  price      Float
   menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
   order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
@@ -193,4 +194,49 @@ enum TicketStatus {
   PAID
   USED
   CANCELLED
+}
+
+model FoodCategory {
+  id        String     @id @default(uuid())
+  name      String
+  items     FoodItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("food_categories")
+}
+
+model FoodItem {
+  id          String         @id @default(uuid())
+  categoryId  String
+  category    FoodCategory   @relation(fields: [categoryId], references: [id])
+  name        String
+  description String?
+  price       Float
+  imageUrl    String?
+  tickets     TicketFood[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("food_items")
+}
+
+model TicketFood {
+  id          String      @id @default(uuid())
+  ticketId    String
+  ticket      Ticket      @relation(fields: [ticketId], references: [id])
+  foodItemId  String
+  foodItem    FoodItem    @relation(fields: [foodItemId], references: [id])
+  quantity    Int         @default(1)
+  status      FoodStatus  @default(PENDING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("ticket_foods")
+}
+
+enum FoodStatus {
+  PENDING
+  COOKING
+  SERVED
 }

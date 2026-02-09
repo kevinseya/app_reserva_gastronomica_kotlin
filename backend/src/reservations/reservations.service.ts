@@ -44,9 +44,10 @@ export class ReservationsService {
       let seatsTotal = 0;
       if (seatIds.length > 0) {
         const seats = await tx.tableSeat.findMany({ where: { id: { in: seatIds } } });
+        // price stored as decimal (e.g. 4.50)
         seatsTotal = seats.reduce((acc, s) => acc + (s.price || 0), 0);
       } else if (table.seatPrice) {
-        seatsTotal = table.seatPrice * partySize;
+        seatsTotal = (table.seatPrice || 0) * partySize;
       }
 
       return { reservation, seatsTotal };

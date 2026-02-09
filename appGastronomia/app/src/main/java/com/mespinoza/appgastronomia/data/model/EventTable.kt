@@ -11,7 +11,7 @@ data class EventTable(
     val y: Int = 0,
     val rotation: Int? = null,
     val capacity: Int = 4,
-    val seatPrice: Int? = null,
+    val seatPrice: Double? = null,
     val seats: List<TableSeat> = emptyList()
 )
 
@@ -20,7 +20,7 @@ data class TableSeat(
     val id: String,
     val tableId: String,
     val index: Int,
-    val price: Int,
+    val price: Double,
     val reservationId: String? = null
     ,
     val table: EventTable? = null

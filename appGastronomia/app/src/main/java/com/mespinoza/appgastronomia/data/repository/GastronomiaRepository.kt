@@ -174,9 +174,9 @@ class GastronomiaRepository @Inject constructor(
     }
     
     // Tickets
-    suspend fun createPaymentIntent(eventId: String, seatIds: List<String>): Result<com.mespinoza.appgastronomia.data.remote.PaymentIntentResponse> {
+    suspend fun createPaymentIntent(request: CreatePaymentIntentRequest): Result<com.mespinoza.appgastronomia.data.remote.PaymentIntentResponse> {
         return try {
-            val response = api.createPaymentIntent(CreatePaymentIntentRequest(eventId, seatIds))
+            val response = api.createPaymentIntent(request)
             Result.success(response)
         } catch (e: Exception) {
             Result.failure(Exception(e.getUserMessage()))
@@ -400,6 +400,76 @@ class GastronomiaRepository @Inject constructor(
             val user = api.updateProfile(request)
             userPreferences.saveUserData(user.id, user.fullName, user.email, user.role.name)
             Result.success(user)
+        } catch (e: Exception) {
+            Result.failure(Exception(e.getUserMessage()))
+        }
+    }
+
+    // Food Management
+    suspend fun getMenu(): Result<List<FoodCategory>> {
+        return try {
+            val menu = api.getMenu()
+            Result.success(menu)
+        } catch (e: Exception) {
+            Result.failure(Exception(e.getUserMessage()))
+        }
+    }
+
+    suspend fun createCategory(name: String): Result<FoodCategory> {
+        return try {
+            val category = api.createCategory(CreateCategoryRequest(name))
+            Result.success(category)
+        } catch (e: Exception) {
+            Result.failure(Exception(e.getUserMessage()))
+        }
+    }
+
+    suspend fun createFoodItem(categoryId: String, name: String, description: String?, price: Double, imageUri: Uri? = null): Result<FoodItem> {
+        return try {
+            val catIdPart = categoryId.toRequestBody("text/plain".toMediaTypeOrNull())
+            val namePart = name.toRequestBody("text/plain".toMediaTypeOrNull())
+            val descPart = description?.toRequestBody("text/plain".toMediaTypeOrNull())
+            val pricePart = price.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+
+            val imagePart = imageUri?.let { uri ->
+                val file = getFileFromUri(uri)
+                val mimeType = getMimeType(uri)
+                val requestFile = file.asRequestBody(mimeType.toMediaTypeOrNull())
+                MultipartBody.Part.createFormData("image", file.name, requestFile)
+            }
+
+            val item = api.createFoodItem(catIdPart, namePart, descPart, pricePart, imagePart)
+            Result.success(item)
+        } catch (e: Exception) {
+            Result.failure(Exception(e.getUserMessage()))
+        }
+    }
+
+    suspend fun updateFoodItem(id: String, categoryId: String?, name: String?, description: String?, price: Double?, imageUri: Uri? = null): Result<FoodItem> {
+        return try {
+            val catIdPart = categoryId?.toRequestBody("text/plain".toMediaTypeOrNull())
+            val namePart = name?.toRequestBody("text/plain".toMediaTypeOrNull())
+            val descPart = description?.toRequestBody("text/plain".toMediaTypeOrNull())
+            val pricePart = price?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
+
+            val imagePart = imageUri?.let { uri ->
+                val file = getFileFromUri(uri)
+                val mimeType = getMimeType(uri)
+                val requestFile = file.asRequestBody(mimeType.toMediaTypeOrNull())
+                MultipartBody.Part.createFormData("image", file.name, requestFile)
+            }
+
+            val item = api.updateFoodItem(id, catIdPart, namePart, descPart, pricePart, imagePart)
+            Result.success(item)
+        } catch (e: Exception) {
+            Result.failure(Exception(e.getUserMessage()))
+        }
+    }
+
+    suspend fun deleteFoodItem(id: String): Result<Unit> {
+        return try {
+            api.deleteFoodItem(id)
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(Exception(e.getUserMessage()))
         }

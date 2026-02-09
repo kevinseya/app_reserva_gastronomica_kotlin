@@ -1,12 +1,35 @@
-import { IsString, IsNotEmpty, IsArray, ArrayNotEmpty } from 'class-validator';
+import { IsString, IsArray, IsOptional, ValidateNested, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class FoodItemOrderDto {
+  @IsString()
+  foodId: string;
+
+  @IsNumber()
+  quantity: number;
+}
+
+class SeatFoodOrderDto {
+  @IsString()
+  seatId: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FoodItemOrderDto)
+  foodItems: FoodItemOrderDto[];
+}
 
 export class CreateTicketDto {
   @IsString()
-  @IsNotEmpty()
   eventId: string;
 
   @IsArray()
-  @ArrayNotEmpty()
   @IsString({ each: true })
   seatIds: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SeatFoodOrderDto)
+  foodOrders?: SeatFoodOrderDto[];
 }

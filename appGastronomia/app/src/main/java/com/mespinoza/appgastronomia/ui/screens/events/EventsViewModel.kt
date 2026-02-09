@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mespinoza.appgastronomia.data.model.Event
 import com.mespinoza.appgastronomia.data.model.EventWithSeats
+import com.mespinoza.appgastronomia.data.model.FoodCategory
 import com.mespinoza.appgastronomia.data.repository.GastronomiaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,10 +27,14 @@ class EventsViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
     
+    private val _menuState = MutableStateFlow<List<FoodCategory>>(emptyList())
+    val menuState: StateFlow<List<FoodCategory>> = _menuState.asStateFlow()
+    
     private var allEvents: List<Event> = emptyList()
     
     init {
         loadEvents()
+        loadMenu()
     }
     
     fun updateSearchQuery(query: String) {
@@ -74,6 +79,14 @@ class EventsViewModel @Inject constructor(
                 .onFailure { error ->
                     _eventDetailState.value = EventDetailState.Error(error.message ?: "Error desconocido")
                 }
+        }
+    }
+
+    fun loadMenu() {
+        viewModelScope.launch {
+            repository.getMenu()
+                .onSuccess { _menuState.value = it }
+                .onFailure { /* Ignorar error por ahora */ }
         }
     }
 }

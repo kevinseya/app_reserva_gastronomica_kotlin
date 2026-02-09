@@ -22,6 +22,7 @@ fun AdminScreen(
     onNavigateToManageEvents: () -> Unit = {},
     onNavigateToManageUsers: () -> Unit = {},
     onNavigateToManageTables: () -> Unit = {},
+    onNavigateToManageFood: () -> Unit = {},
     userPreferences: UserPreferences = hiltViewModel<com.mespinoza.appgastronomia.ui.screens.profile.ProfileViewModel>().userPreferences,
     statsViewModel: AdminStatsViewModel = hiltViewModel()
 ) {
@@ -183,6 +184,13 @@ fun AdminScreen(
                 title = "Gestionar Usuarios",
                 description = "Ver y administrar usuarios registrados",
                 onClick = onNavigateToManageUsers
+            )
+            
+            AdminActionCard(
+                icon = Icons.Default.RestaurantMenu,
+                title = "Gestionar Menús",
+                description = "Crear categorías y platos de comida",
+                onClick = onNavigateToManageFood
             )
 
             // Removed "Gestionar Mesas" action as requested

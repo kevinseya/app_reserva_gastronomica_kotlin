@@ -17,7 +17,8 @@ data class Ticket(
     val updatedAt: String,
     val event: Event? = null,
     val seat: Seat? = null,
-    val tableSeat: com.mespinoza.appgastronomia.data.model.TableSeat? = null
+    val tableSeat: com.mespinoza.appgastronomia.data.model.TableSeat? = null,
+    val foodItems: List<TicketFood> = emptyList()
 )
 
 @Serializable
@@ -37,7 +38,38 @@ data class PaymentIntentResponse(
 @Serializable
 data class CreatePaymentIntentRequest(
     val eventId: String,
-    val seatIds: List<String>
+    val seatIds: List<String>,
+    val foodOrders: List<SeatFoodOrder> = emptyList()
+)
+
+@Serializable
+data class SeatFoodOrder(
+    val seatId: String,
+    val foodItems: List<FoodOrderItem>
+)
+
+@Serializable
+data class FoodOrderItem(
+    val foodId: String,
+    val quantity: Int
+)
+
+@Serializable
+data class TicketFood(
+    val id: String,
+    val foodItem: FoodItem,
+    val quantity: Int,
+    val status: String // PENDING, COOKING, SERVED
+)
+
+@Serializable
+data class FoodItem(
+    val id: String,
+    val name: String,
+    val description: String?,
+    val price: Double,
+    val imageUrl: String?,
+    val categoryId: String
 )
 
 @Serializable
@@ -56,4 +88,23 @@ data class VerifyTicketResponse(
     val valid: Boolean,
     val message: String,
     val ticket: Ticket?
+)
+
+@Serializable
+data class FoodCategory(
+    val id: String,
+    val name: String,
+    val items: List<FoodItem> = emptyList()
+)
+
+@Serializable
+data class CreateCategoryRequest(val name: String)
+
+@Serializable
+data class CreateFoodItemRequest(
+    val categoryId: String,
+    val name: String,
+    val description: String?,
+    val price: Double,
+    val imageUrl: String? = null
 )

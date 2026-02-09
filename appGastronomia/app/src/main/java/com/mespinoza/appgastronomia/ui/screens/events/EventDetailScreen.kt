@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.mespinoza.appgastronomia.data.model.EventTable
+import com.mespinoza.appgastronomia.data.model.FoodItem
+import com.mespinoza.appgastronomia.data.model.FoodCategory
 import com.mespinoza.appgastronomia.data.model.TableSeat
 import com.mespinoza.appgastronomia.ui.screens.payment.PaymentViewModel
 import com.mespinoza.appgastronomia.ui.screens.payment.PaymentState
@@ -53,8 +55,17 @@ fun EventDetailScreen(
     val eventDetailState by viewModel.eventDetailState.collectAsState()
     val paymentState by paymentViewModel.paymentState.collectAsState()
     val eventTables by tablesViewModel.eventTables.collectAsState()
+    val menuCategories by viewModel.menuState.collectAsState()
     
     var selectedSeats by remember { mutableStateOf(setOf<String>()) }
+    var showFoodSelection by remember { mutableStateOf(false) }
+    // Mapa de seatId -> Lista de items seleccionados (simplificado para demo: un mapa global o por asiento)
+    // Para simplificar UX: Seleccionamos comida para "la orden" y el backend la asigna al primer asiento o distribuida
+    // Pero el requerimiento dice "ticket va a salir que comida eligio". Asignaremos al primer asiento seleccionado para simplificar el flujo UI
+    var selectedFoodItems by remember { mutableStateOf<List<FoodItem>>(emptyList()) }
+
+    // Calcularemos totales usando el precio base del evento + precio extra de los asientos
+
     var paymentIntentId by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     var paymentErrorMessage by remember { mutableStateOf<String?>(null) }
@@ -63,7 +74,7 @@ fun EventDetailScreen(
         when (result) {
             is PaymentSheetResult.Completed -> {
                 paymentIntentId?.let { id ->
-                    paymentViewModel.confirmPayment(id, selectedSeats.toList())
+                    paymentViewModel.confirmPayment(id, selectedSeats.toList()) // La confirmación usa los mismos IDs
                 }
             }
             is PaymentSheetResult.Canceled -> {
@@ -95,6 +106,8 @@ fun EventDetailScreen(
                 onPurchaseSuccess()
                 paymentViewModel.resetState()
                 selectedSeats = setOf()
+                selectedFoodItems = emptyList()
+                showFoodSelection = false
             }
             is PaymentState.Error -> {
                 paymentErrorMessage = state.message
@@ -114,6 +127,19 @@ fun EventDetailScreen(
         eventTables.flatMap { it.seats }
             .filter { selectedSeats.contains(it.id) }
             .sumOf { it.price }
+    }
+    
+    val foodPrice = selectedFoodItems.sumOf { it.price }
+
+    val finalTotal = remember(selectedSeats, eventTables, selectedFoodItems, eventDetailState) {
+                        val seatsPrice = eventTables.flatMap { it.seats }
+                            .filter { selectedSeats.contains(it.id) }
+                            .sumOf { it.price }
+
+        val eventBasePrice = (eventDetailState as? EventDetailState.Success)?.event?.ticketPrice ?: 0.0
+        val eventPriceTotal = selectedSeats.size * eventBasePrice
+
+        eventPriceTotal + seatsPrice + foodPrice
     }
     
     Scaffold(
@@ -141,16 +167,52 @@ fun EventDetailScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val seatsPrice = eventTables.flatMap { it.seats }
+                            .filter { selectedSeats.contains(it.id) }
+                            .sumOf { it.price }
+                        val eventBasePrice = (eventDetailState as? EventDetailState.Success)?.event?.ticketPrice ?: 0.0
+                        val eventPriceTotal = selectedSeats.size * eventBasePrice
+
                         Column {
                             Text("${selectedSeats.size} asientos", style = MaterialTheme.typography.bodyMedium)
-                            Text(formatPrice(totalPrice.toDouble()), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            if (selectedFoodItems.isNotEmpty()) {
+                                Text("+ ${selectedFoodItems.size} comidas", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            // Desglose
+                            if (selectedSeats.isNotEmpty()) {
+                                Text("Evento: ${formatPrice(eventPriceTotal)}", style = MaterialTheme.typography.bodySmall)
+                                Text("Asientos: ${formatPrice(seatsPrice)}", style = MaterialTheme.typography.bodySmall)
+                            }
+                            if (selectedFoodItems.isNotEmpty()) {
+                                Text("Comida: ${formatPrice(foodPrice)}", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(formatPrice(finalTotal), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         }
                         Button(
-                            onClick = { paymentViewModel.createPaymentIntent(eventId, selectedSeats.toList()) },
+                            onClick = { 
+                                if (!showFoodSelection) {
+                                    showFoodSelection = true
+                                } else {
+                                    // Crear payload de comida
+                                    // Asignamos toda la comida al primer asiento seleccionado para que salga en ese ticket
+                                    // O idealmente una UI para asignar por asiento.
+                                    val foodOrders = if (selectedSeats.isNotEmpty() && selectedFoodItems.isNotEmpty()) {
+                                        val firstSeat = selectedSeats.first()
+                                        val items = selectedFoodItems.groupBy { it.id }.map { (id, list) ->
+                                            com.mespinoza.appgastronomia.data.model.FoodOrderItem(id, list.size)
+                                        }
+                                        listOf(com.mespinoza.appgastronomia.data.model.SeatFoodOrder(firstSeat, items))
+                                    } else emptyList()
+                                    
+                                    paymentViewModel.createPaymentIntent(eventId, selectedSeats.toList(), foodOrders)
+                                }
+                            },
                             enabled = selectedSeats.isNotEmpty() && paymentState !is PaymentState.Loading,
                             colors = ButtonDefaults.buttonColors(containerColor = MediumBlue, disabledContainerColor = LightGray)
                         ) {
-                            Text("Comprar")
+                            Text(if (showFoodSelection) "Pagar" else "Continuar")
                         }
                     }
                 }
@@ -179,6 +241,15 @@ fun EventDetailScreen(
                         InfoRow(icon = Icons.Default.LocationOn, text = state.event.venue)
                         
                         Spacer(modifier = Modifier.height(24.dp))
+                        
+                        if (showFoodSelection) {
+                            FoodSelectionView(
+                                menuCategories = menuCategories,
+                                onFoodAdded = { food -> selectedFoodItems = selectedFoodItems + food },
+                                onFoodRemoved = { food -> selectedFoodItems = selectedFoodItems - food },
+                                selectedItems = selectedFoodItems
+                            )
+                        } else {
                         Text("Selecciona tus asientos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         
                         Spacer(modifier = Modifier.height(12.dp))
@@ -201,11 +272,77 @@ fun EventDetailScreen(
                                 }
                             )
                         }
+                        }
                         Spacer(modifier = Modifier.height(100.dp))
                     }
                 }
             }
             is EventDetailState.Error -> { /* Reintentar UI */ }
+        }
+    }
+}
+
+@Composable
+fun FoodSelectionView(
+    menuCategories: List<FoodCategory>,
+    onFoodAdded: (FoodItem) -> Unit,
+    onFoodRemoved: (FoodItem) -> Unit,
+    selectedItems: List<FoodItem>
+) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        Text("Menú de Comidas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = DarkBlue)
+        Text("Agrega comida a tu orden (se entregará en tu mesa)", style = MaterialTheme.typography.bodySmall, color = Gray)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Mostrar por categorías
+        menuCategories.forEach { category ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(category.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            category.items.forEach { item ->
+                val count = selectedItems.count { it.id == item.id }
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            AsyncImage(
+                                model = item.imageUrl ?: "https://via.placeholder.com/64",
+                                contentDescription = item.name,
+                                modifier = Modifier.size(48.dp).clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(item.name, fontWeight = FontWeight.Bold)
+                                item.description?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Gray) }
+                            }
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(formatPrice(item.price), color = MediumBlue, fontWeight = FontWeight.Bold)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (count > 0) {
+                                    IconButton(onClick = { onFoodRemoved(item) }) {
+                                        Icon(Icons.Default.Remove, null, tint = ErrorRed)
+                                    }
+                                    Text(count.toString(), fontWeight = FontWeight.Bold)
+                                }
+                                IconButton(onClick = { onFoodAdded(item) }) {
+                                    Icon(Icons.Default.Add, null, tint = SuccessGreen)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

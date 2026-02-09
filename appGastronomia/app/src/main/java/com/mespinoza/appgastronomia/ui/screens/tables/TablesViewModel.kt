@@ -73,7 +73,7 @@ class TablesViewModel @Inject constructor(
         }
     }
 
-    fun updateEventTable(eventId: String, tableId: String, capacity: Int?, seatPrice: Int?, x: Int? = null, y: Int? = null, rotation: Int? = null) {
+    fun updateEventTable(eventId: String, tableId: String, capacity: Int?, seatPrice: Double?, x: Int? = null, y: Int? = null, rotation: Int? = null) {
         viewModelScope.launch {
             val req = com.mespinoza.appgastronomia.data.remote.UpdateEventTableRequest(
                 capacity = capacity,
@@ -98,7 +98,7 @@ class TablesViewModel @Inject constructor(
         }
     }
 
-    fun createEventTable(eventId: String, name: String, x: Int, y: Int, rotation: Int, capacity: Int, seatPrice: Int) {
+    fun createEventTable(eventId: String, name: String, x: Int, y: Int, rotation: Int, capacity: Int, seatPrice: Double) {
         viewModelScope.launch {
             val req = com.mespinoza.appgastronomia.data.remote.CreateEventTableRequest(
                 name = name,
@@ -116,7 +116,7 @@ class TablesViewModel @Inject constructor(
     }
 
     // Synchronous suspend function to create a table and return success
-    suspend fun createEventTableSuspend(eventId: String, name: String, x: Int, y: Int, rotation: Int, capacity: Int, seatPrice: Int): Boolean {
+    suspend fun createEventTableSuspend(eventId: String, name: String, x: Int, y: Int, rotation: Int, capacity: Int, seatPrice: Double): Boolean {
         val req = com.mespinoza.appgastronomia.data.remote.CreateEventTableRequest(
             name = name,
             x = x,

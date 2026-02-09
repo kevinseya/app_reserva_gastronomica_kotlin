@@ -15,7 +15,7 @@ fun EventTablesEditor(
     eventId: String,
     tables: List<EventTable>,
     onClose: () -> Unit,
-    onUpdate: (tableId: String, capacity: Int?, seatPrice: Int?, x: Int?, y: Int?, rotation: Int?) -> Unit,
+    onUpdate: (tableId: String, capacity: Int?, seatPrice: Double?, x: Int?, y: Int?, rotation: Int?) -> Unit,
     onDelete: (tableId: String) -> Unit
 ) {
     AlertDialog(
@@ -39,9 +39,9 @@ fun EventTablesEditor(
 }
 
 @Composable
-fun EventTableEditorRow(table: EventTable, onUpdate: (String, Int?, Int?, Int?, Int?, Int?) -> Unit, onDelete: (String) -> Unit) {
+fun EventTableEditorRow(table: EventTable, onUpdate: (String, Int?, Double?, Int?, Int?, Int?) -> Unit, onDelete: (String) -> Unit) {
     var capacityText by remember { mutableStateOf(table.capacity.toString()) }
-    var priceText by remember { mutableStateOf((table.seatPrice ?: 0).toString()) }
+    var priceText by remember { mutableStateOf((table.seatPrice ?: 0.0).toString()) }
 
     Card(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -49,13 +49,13 @@ fun EventTableEditorRow(table: EventTable, onUpdate: (String, Int?, Int?, Int?, 
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = capacityText, onValueChange = { capacityText = it }, label = { Text("Capacidad") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(value = priceText, onValueChange = { priceText = it }, label = { Text("Precio (centavos)") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = priceText, onValueChange = { priceText = it }, label = { Text("Precio") }, modifier = Modifier.weight(1f))
             }
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = {
                     val cap = capacityText.toIntOrNull()
-                    val price = priceText.toIntOrNull()
+                    val price = priceText.toDoubleOrNull()
                     onUpdate(table.id, cap, price, null, null, null)
                 }) { Text("Guardar") }
                 OutlinedButton(onClick = { onDelete(table.id) }) { Text("Eliminar") }

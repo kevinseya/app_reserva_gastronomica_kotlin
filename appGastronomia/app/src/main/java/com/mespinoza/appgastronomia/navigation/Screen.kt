@@ -17,6 +17,7 @@ sealed class Screen(val route: String) {
     data object Admin : Screen("admin")
     data object ManageEvents : Screen("admin/events")
     data object ManageUsers : Screen("admin/users")
+    data object ManageFood : Screen("admin/food")
     data object CreateEvent : Screen("admin/events/create")
     data object EditEvent : Screen("admin/events/edit/{eventId}") {
         fun createRoute(eventId: String) = "admin/events/edit/$eventId"

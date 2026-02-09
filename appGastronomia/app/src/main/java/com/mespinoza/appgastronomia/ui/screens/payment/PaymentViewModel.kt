@@ -2,6 +2,8 @@ package com.mespinoza.appgastronomia.ui.screens.payment
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mespinoza.appgastronomia.data.model.CreatePaymentIntentRequest
+import com.mespinoza.appgastronomia.data.model.SeatFoodOrder
 import com.mespinoza.appgastronomia.data.repository.GastronomiaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,10 +20,10 @@ class PaymentViewModel @Inject constructor(
     private val _paymentState = MutableStateFlow<PaymentState>(PaymentState.Idle)
     val paymentState: StateFlow<PaymentState> = _paymentState.asStateFlow()
     
-    fun createPaymentIntent(eventId: String, seatIds: List<String>) {
+    fun createPaymentIntent(eventId: String, seatIds: List<String>, foodOrders: List<SeatFoodOrder> = emptyList()) {
         viewModelScope.launch {
             _paymentState.value = PaymentState.Loading
-            repository.createPaymentIntent(eventId, seatIds)
+            repository.createPaymentIntent(CreatePaymentIntentRequest(eventId, seatIds, foodOrders))
                 .onSuccess { response ->
                     _paymentState.value = PaymentState.PaymentIntentCreated(
                         response.clientSecret,

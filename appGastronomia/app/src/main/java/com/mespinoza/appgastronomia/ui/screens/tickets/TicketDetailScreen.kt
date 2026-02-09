@@ -173,6 +173,24 @@ fun TicketDetailScreen(
                                 Spacer(modifier = Modifier.height(12.dp))
                                 DetailRow("Asiento", ticket.seat?.column?.toString() ?: "-")
                             }
+                            
+                            // Sección de Comida
+                            if (ticket.foodItems.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Divider()
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("Comida Ordenada", fontWeight = FontWeight.Bold, color = DarkBlue)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                ticket.foodItems.forEach { tf ->
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("${tf.quantity}x ${tf.foodItem.name}", style = MaterialTheme.typography.bodyMedium)
+                                        // Mostrar estado
+                                        val statusColor = if(tf.status == "SERVED") SuccessGreen else WarningOrange
+                                        Text(tf.status, color = statusColor, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+
                             Spacer(modifier = Modifier.height(12.dp))
                             DetailRow(
                                 "Precio",

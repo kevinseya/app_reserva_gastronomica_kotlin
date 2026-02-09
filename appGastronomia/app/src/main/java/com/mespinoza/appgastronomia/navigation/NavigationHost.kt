@@ -18,6 +18,7 @@ import com.mespinoza.appgastronomia.data.local.UserPreferences
 import com.mespinoza.appgastronomia.ui.screens.admin.AdminScreen
 import com.mespinoza.appgastronomia.ui.screens.admin.ManageEventsScreen
 import com.mespinoza.appgastronomia.ui.screens.admin.ManageUsersScreen
+import com.mespinoza.appgastronomia.ui.screens.admin.ManageFoodScreen
 import com.mespinoza.appgastronomia.ui.screens.admin.CreateEventScreen
 import com.mespinoza.appgastronomia.ui.screens.auth.LoginScreen
 import com.mespinoza.appgastronomia.ui.screens.auth.RegisterScreen
@@ -295,6 +296,9 @@ fun NavigationHost(
                         },
                         onNavigateToManageTables = {
                             navController.navigate(Screen.Tables.route)
+                        },
+                        onNavigateToManageFood = {
+                            navController.navigate(Screen.ManageFood.route)
                         }
                     )
                 }
@@ -313,6 +317,12 @@ fun NavigationHost(
                 
                 composable(Screen.ManageUsers.route) {
                     ManageUsersScreen(
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+                
+                composable(Screen.ManageFood.route) {
+                    ManageFoodScreen(
                         onNavigateBack = { navController.popBackStack() }
                     )
                 }

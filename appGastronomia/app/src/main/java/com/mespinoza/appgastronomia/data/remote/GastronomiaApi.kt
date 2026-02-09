@@ -138,6 +138,37 @@ interface GastronomiaApi {
 
     @POST("orders/{id}/confirm")
     suspend fun confirmOrder(@Path("id") id: String, @Body request: ConfirmPaymentRequest): GenericResponse
+
+    // Food Management
+    @GET("food/menu")
+    suspend fun getMenu(): List<FoodCategory>
+
+    @POST("food/categories")
+    suspend fun createCategory(@Body request: CreateCategoryRequest): FoodCategory
+
+    @Multipart
+    @POST("food/items")
+    suspend fun createFoodItem(
+        @Part("categoryId") categoryId: RequestBody,
+        @Part("name") name: RequestBody,
+        @Part("description") description: RequestBody?,
+        @Part("price") price: RequestBody,
+        @Part image: MultipartBody.Part?
+    ): FoodItem
+
+    @Multipart
+    @PATCH("food/items/{id}")
+    suspend fun updateFoodItem(
+        @Path("id") id: String,
+        @Part("categoryId") categoryId: RequestBody?,
+        @Part("name") name: RequestBody?,
+        @Part("description") description: RequestBody?,
+        @Part("price") price: RequestBody?,
+        @Part image: MultipartBody.Part?
+    ): FoodItem
+
+    @DELETE("food/items/{id}")
+    suspend fun deleteFoodItem(@Path("id") id: String): GenericResponse
 }
 
 @kotlinx.serialization.Serializable
@@ -147,7 +178,7 @@ data class CreateOrderRequest(val items: List<OrderItemRequest>)
 data class OrderItemRequest(val menuItemId: String, val quantity: Int = 1)
 
 @kotlinx.serialization.Serializable
-data class OrderResponse(val id: String, val reservationId: String?, val total: Int, val status: String)
+data class OrderResponse(val id: String, val reservationId: String?, val total: Double, val status: String)
 
 @kotlinx.serialization.Serializable
 data class PaymentIntentResponse(val clientSecret: String, val paymentIntentId: String)
@@ -165,7 +196,7 @@ data class CreateEventTableRequest(
     val y: Int? = null,
     val rotation: Int? = null,
     val capacity: Int? = null,
-    val seatPrice: Int? = null
+    val seatPrice: Double? = null
 )
 
 @kotlinx.serialization.Serializable
@@ -175,5 +206,5 @@ data class UpdateEventTableRequest(
     val y: Int? = null,
     val rotation: Int? = null,
     val capacity: Int? = null,
-    val seatPrice: Int? = null
+    val seatPrice: Double? = null
 )

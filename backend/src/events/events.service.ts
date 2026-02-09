@@ -164,7 +164,8 @@ export class EventsService {
       // crear asientos para la mesa
       const seatsData = [] as any[];
       for (let s = 0; s < capacity; s++) {
-        seatsData.push({ tableId: table.id, index: s + 1, price: event.ticketPrice ? Math.round(event.ticketPrice * 100) : 0 });
+        // store price as decimal (e.g. 4.50)
+        seatsData.push({ tableId: table.id, index: s + 1, price: event.ticketPrice ?? 0 });
       }
 
       await this.prisma.tableSeat.createMany({ data: seatsData });
@@ -181,7 +182,8 @@ export class EventsService {
     if (!event) throw new NotFoundException('Evento no encontrado');
 
     const capacity = Math.min(data.capacity || 4, 8); // máximo 8 asientos
-    const seatPrice = data.seatPrice || (event.ticketPrice ? event.ticketPrice * 100 : 2000);
+    // seatPrice comes as decimal (e.g. 4.50) - store directly
+    const seatPrice = typeof data.seatPrice === 'number' ? data.seatPrice : (event.ticketPrice ?? 0);
 
     const table = await this.prisma.eventTable.create({
       data: {
