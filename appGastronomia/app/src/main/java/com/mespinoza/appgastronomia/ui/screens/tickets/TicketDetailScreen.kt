@@ -80,14 +80,18 @@ fun TicketDetailScreen(
                 }
             }
             is TicketDetailState.Success -> {
-                val ticket = state.ticket
-                val qrBitmap = remember(ticket.qrCode) { generateQrBitmap(ticket.qrCode, 600) }
+                val tickets = state.tickets
+                val mainTicket = tickets.first() // Usamos el primero para datos generales (evento, fecha, QR)
+                val qrBitmap = remember(mainTicket.qrCode) { generateQrBitmap(mainTicket.qrCode, 600) }
                 
-                val totalPrice = remember(ticket) {
-                    val eventPrice = ticket.event?.ticketPrice ?: 0.0
-                    val seatPrice = ticket.tableSeat?.price ?: 0.0
-                    val foodPrice = ticket.foodItems.sumOf { it.quantity * it.foodItem.price }
-                    eventPrice + seatPrice + foodPrice
+                // Calcular totales de TODO el grupo de tickets
+                val totalPrice = remember(tickets) {
+                    tickets.sumOf { ticket ->
+                        val eventPrice = ticket.event?.ticketPrice ?: 0.0
+                        val seatPrice = ticket.tableSeat?.price ?: 0.0
+                        val foodPrice = ticket.foodItems.sumOf { it.quantity * it.foodItem.price }
+                        eventPrice + seatPrice + foodPrice
+                    }
                 }
 
                 Column(
@@ -155,47 +159,67 @@ fun TicketDetailScreen(
 
                             DetailRow(
                                 "Estado",
-                                ticket.status.name,
-                                if (ticket.status == TicketStatus.PAID) SuccessGreen else DarkBlue
+                                mainTicket.status.name,
+                                if (mainTicket.status == TicketStatus.PAID) SuccessGreen else DarkBlue
                             )
                             Spacer(modifier = Modifier.height(12.dp))
-                            DetailRow("Evento", ticket.event?.name ?: "Evento")
+                            DetailRow("Evento", mainTicket.event?.name ?: "Evento")
                             Spacer(modifier = Modifier.height(12.dp))
-                            DetailRow("Fecha", ticket.event?.date?.let { formatDate(it) } ?: "-")
+                            DetailRow("Fecha", mainTicket.event?.date?.let { formatDate(it) } ?: "-")
                             Spacer(modifier = Modifier.height(12.dp))
-                            DetailRow("Ubicación", ticket.event?.venue ?: "-")
+                            DetailRow("Ubicación", mainTicket.event?.venue ?: "-")
                             Spacer(modifier = Modifier.height(12.dp))
-                            if (ticket.tableSeat != null) {
-                                DetailRow(
-                                    "Mesa",
-                                    ticket.tableSeat.table?.name ?: ticket.tableSeat.tableId
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                DetailRow(
-                                    "Asiento N°",
-                                    (ticket.tableSeat.index + 1).toString()
-                                )
-                            } else {
-                                DetailRow("Fila", ticket.seat?.row?.toString() ?: "-")
-                                Spacer(modifier = Modifier.height(12.dp))
-                                DetailRow("Asiento", ticket.seat?.column?.toString() ?: "-")
+                            
+                            Divider()
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("Asientos Comprados (${tickets.size})", fontWeight = FontWeight.Bold, color = DarkBlue)
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            tickets.forEach { ticket ->
+                                val seatLabel = if (ticket.tableSeat != null) {
+                                    "${ticket.tableSeat.table?.name ?: "Mesa"} - Asiento ${ticket.tableSeat.index + 1}"
+                                } else {
+                                    "Fila ${ticket.seat?.row}, N° ${ticket.seat?.column}"
+                                }
+                                val eventVal = ticket.event?.ticketPrice ?: 0.0
+                                val seatVal = ticket.tableSeat?.price ?: 0.0
+
+                                Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                    Text(seatLabel, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("  Entrada Evento:", style = MaterialTheme.typography.bodySmall, color = Gray)
+                                        Text(formatPrice(eventVal), style = MaterialTheme.typography.bodySmall)
+                                    }
+                                    if (seatVal > 0) {
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text("  Valor Asiento:", style = MaterialTheme.typography.bodySmall, color = Gray)
+                                            Text(formatPrice(seatVal), style = MaterialTheme.typography.bodySmall)
+                                        }
+                                    }
+                                }
+                                Divider(color = LightGray.copy(alpha = 0.5f))
                             }
                             
                             // Sección de Comida
-                            if (ticket.foodItems.isNotEmpty()) {
+                            val allFoodItems = tickets.flatMap { it.foodItems }
+                            if (allFoodItems.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Divider()
-                                Spacer(modifier = Modifier.height(8.dp))
                                 Text("Comida Ordenada", fontWeight = FontWeight.Bold, color = DarkBlue)
                                 Spacer(modifier = Modifier.height(8.dp))
-                                ticket.foodItems.forEach { tf ->
+                                allFoodItems.forEach { tf ->
+                                    val itemTotal = tf.quantity * tf.foodItem.price
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        val catName = tf.foodItem.category?.name?.uppercase() ?: ""
-                                        Text("${tf.quantity}x $catName - ${tf.foodItem.name}", style = MaterialTheme.typography.bodyMedium)
-                                        // Mostrar estado
-                                        val statusColor = if(tf.status == "SERVED") SuccessGreen else WarningOrange
-                                        Text(tf.status, color = statusColor, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text("${tf.quantity}x ${tf.foodItem.name}", style = MaterialTheme.typography.bodyMedium)
+                                            Text("${formatPrice(tf.foodItem.price)} c/u", style = MaterialTheme.typography.bodySmall, color = Gray)
+                                        }
+                                        Column(horizontalAlignment = Alignment.End) {
+                                            Text(formatPrice(itemTotal), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                            val statusColor = if(tf.status == "SERVED") SuccessGreen else WarningOrange
+                                            Text(tf.status, color = statusColor, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                                        }
                                     }
+                                    Spacer(modifier = Modifier.height(8.dp))
                                 }
                             }
 
