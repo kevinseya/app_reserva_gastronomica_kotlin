@@ -22,19 +22,35 @@ class TicketDetailViewModel @Inject constructor(
     fun loadTicket(ticketId: String) {
         viewModelScope.launch {
             _ticketState.value = TicketDetailState.Loading
-            repository.getTicketById(ticketId)
-                .onSuccess { ticket ->
-                    _ticketState.value = TicketDetailState.Success(ticket)
+            
+            // Cargamos el ticket individual y luego buscamos todos los tickets de esa misma compra (paymentIntentId)
+            val ticketResult = repository.getTicketById(ticketId)
+            val allTicketsResult = repository.getMyTickets()
+
+            if (ticketResult.isSuccess && allTicketsResult.isSuccess) {
+                val currentTicket = ticketResult.getOrNull()!!
+                val allTickets = allTicketsResult.getOrNull()!!
+                
+                // Agrupamos por el ID de pago para mostrar la compra completa
+                val relatedTickets = if (currentTicket.stripePaymentId != null) {
+                    allTickets.filter { it.stripePaymentId == currentTicket.stripePaymentId }
+                } else {
+                    listOf(currentTicket)
                 }
-                .onFailure { error ->
-                    _ticketState.value = TicketDetailState.Error(error.message ?: "Error al cargar ticket")
-                }
+                
+                // Si por alguna razón no hay match (data antigua), mostramos al menos el actual
+                val finalGroup = if (relatedTickets.isNotEmpty()) relatedTickets else listOf(currentTicket)
+                
+                _ticketState.value = TicketDetailState.Success(finalGroup)
+            } else {
+                _ticketState.value = TicketDetailState.Error("Error al cargar detalles de la compra")
+            }
         }
     }
 }
 
 sealed class TicketDetailState {
     data object Loading : TicketDetailState()
-    data class Success(val ticket: Ticket) : TicketDetailState()
+    data class Success(val tickets: List<Ticket>) : TicketDetailState()
     data class Error(val message: String) : TicketDetailState()
 }
