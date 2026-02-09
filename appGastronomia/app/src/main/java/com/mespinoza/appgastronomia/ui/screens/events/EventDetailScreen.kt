@@ -91,6 +91,7 @@ fun EventDetailScreen(
     LaunchedEffect(eventId) {
         viewModel.loadEventDetail(eventId)
         tablesViewModel.loadEventTables(eventId)
+        viewModel.loadMenu()
     }
     
     LaunchedEffect(paymentState) {
@@ -289,6 +290,17 @@ fun FoodSelectionView(
     onFoodRemoved: (FoodItem) -> Unit,
     selectedItems: List<FoodItem>
 ) {
+    // Estado para controlar qué categorías están expandidas
+    // Inicialmente todas expandidas para que el usuario vea la comida
+    var expandedCategoryIds by remember { mutableStateOf(menuCategories.map { it.id }.toSet()) }
+
+    // Actualizar estado si llegan nuevas categorías (ej: al recargar)
+    LaunchedEffect(menuCategories) {
+        if (expandedCategoryIds.isEmpty() && menuCategories.isNotEmpty()) {
+            expandedCategoryIds = menuCategories.map { it.id }.toSet()
+        }
+    }
+
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         Text("Menú de Comidas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = DarkBlue)
         Text("Agrega comida a tu orden (se entregará en tu mesa)", style = MaterialTheme.typography.bodySmall, color = Gray)
@@ -296,47 +308,68 @@ fun FoodSelectionView(
 
         // Mostrar por categorías
         menuCategories.forEach { category ->
+            val isExpanded = expandedCategoryIds.contains(category.id)
+            
             Spacer(modifier = Modifier.height(8.dp))
-            Text(category.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Cabecera de Categoría (Click para expandir/contraer)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        expandedCategoryIds = if (isExpanded) expandedCategoryIds - category.id else expandedCategoryIds + category.id
+                    }
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(category.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = DarkBlue)
+                Icon(
+                    if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = DarkBlue
+                )
+            }
 
-            category.items.forEach { item ->
-                val count = selectedItems.count { it.id == item.id }
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+            if (isExpanded) {
+                category.items.forEach { item ->
+                    val count = selectedItems.count { it.id == item.id }
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            AsyncImage(
-                                model = item.imageUrl ?: "https://via.placeholder.com/64",
-                                contentDescription = item.name,
-                                modifier = Modifier.size(48.dp).clip(CircleShape),
-                                contentScale = ContentScale.Crop
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(item.name, fontWeight = FontWeight.Bold)
-                                item.description?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Gray) }
-                            }
-                        }
-
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(formatPrice(item.price), color = MediumBlue, fontWeight = FontWeight.Bold)
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (count > 0) {
-                                    IconButton(onClick = { onFoodRemoved(item) }) {
-                                        Icon(Icons.Default.Remove, null, tint = ErrorRed)
-                                    }
-                                    Text(count.toString(), fontWeight = FontWeight.Bold)
+                        Row(
+                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                AsyncImage(
+                                    model = ImageUtils.getFullImageUrl(item.imageUrl),
+                                    contentDescription = item.name,
+                                    modifier = Modifier.size(48.dp).clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(item.name, fontWeight = FontWeight.Bold, color = DarkBlue)
+                                    item.description?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Gray) }
                                 }
-                                IconButton(onClick = { onFoodAdded(item) }) {
-                                    Icon(Icons.Default.Add, null, tint = SuccessGreen)
+                            }
+    
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(formatPrice(item.price), color = MediumBlue, fontWeight = FontWeight.Bold)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (count > 0) {
+                                        IconButton(onClick = { onFoodRemoved(item) }) {
+                                            Icon(Icons.Default.Remove, null, tint = ErrorRed)
+                                        }
+                                        Text(count.toString(), fontWeight = FontWeight.Bold)
+                                    }
+                                    IconButton(onClick = { onFoodAdded(item) }) {
+                                        Icon(Icons.Default.Add, null, tint = SuccessGreen)
+                                    }
                                 }
                             }
                         }

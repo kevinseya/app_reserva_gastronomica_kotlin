@@ -273,7 +273,7 @@ export class TicketsService {
         event: true,
         seat: true,
         tableSeat: { include: { table: true } },
-        foodItems: { include: { foodItem: true } } // Incluir comida
+        foodItems: { include: { foodItem: { include: { category: true } } } } // Incluir comida y categoría
       },
       orderBy: { purchaseDate: 'desc' },
     });
@@ -286,7 +286,7 @@ export class TicketsService {
         event: true,
         seat: true,
         tableSeat: { include: { table: true } },
-        foodItems: { include: { foodItem: true } },
+        foodItems: { include: { foodItem: { include: { category: true } } } },
         user: {
           select: {
             id: true,
@@ -402,7 +402,7 @@ export class TicketsService {
         event: true,
         seat: true,
         tableSeat: true,
-        foodItems: { include: { foodItem: true } }, // Retornar comida al escanear
+        foodItems: { include: { foodItem: { include: { category: true } } } }, // Retornar comida al escanear
         user: {
           select: {
             id: true,
@@ -453,7 +453,7 @@ export class TicketsService {
         event: true,
         seat: true,
         tableSeat: { include: { table: true } },
-        foodItems: { include: { foodItem: true } },
+        foodItems: { include: { foodItem: { include: { category: true } } } },
         user: {
           select: {
             id: true,

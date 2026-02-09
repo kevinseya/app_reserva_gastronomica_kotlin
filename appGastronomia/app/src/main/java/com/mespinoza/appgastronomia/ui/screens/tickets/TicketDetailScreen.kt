@@ -82,6 +82,13 @@ fun TicketDetailScreen(
             is TicketDetailState.Success -> {
                 val ticket = state.ticket
                 val qrBitmap = remember(ticket.qrCode) { generateQrBitmap(ticket.qrCode, 600) }
+                
+                val totalPrice = remember(ticket) {
+                    val eventPrice = ticket.event?.ticketPrice ?: 0.0
+                    val seatPrice = ticket.tableSeat?.price ?: 0.0
+                    val foodPrice = ticket.foodItems.sumOf { it.quantity * it.foodItem.price }
+                    eventPrice + seatPrice + foodPrice
+                }
 
                 Column(
                     modifier = Modifier
@@ -183,7 +190,8 @@ fun TicketDetailScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
                                 ticket.foodItems.forEach { tf ->
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Text("${tf.quantity}x ${tf.foodItem.name}", style = MaterialTheme.typography.bodyMedium)
+                                        val catName = tf.foodItem.category?.name?.uppercase() ?: ""
+                                        Text("${tf.quantity}x $catName - ${tf.foodItem.name}", style = MaterialTheme.typography.bodyMedium)
                                         // Mostrar estado
                                         val statusColor = if(tf.status == "SERVED") SuccessGreen else WarningOrange
                                         Text(tf.status, color = statusColor, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
@@ -193,8 +201,8 @@ fun TicketDetailScreen(
 
                             Spacer(modifier = Modifier.height(12.dp))
                             DetailRow(
-                                "Precio",
-                                ticket.event?.ticketPrice?.let { formatPrice(it) } ?: "-",
+                                "Total Pagado",
+                                formatPrice(totalPrice),
                                 DarkBlue
                             )
                         }

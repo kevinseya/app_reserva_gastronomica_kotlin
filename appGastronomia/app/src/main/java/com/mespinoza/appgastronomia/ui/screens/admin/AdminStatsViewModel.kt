@@ -36,7 +36,12 @@ class AdminStatsViewModel @Inject constructor(
                 val users = usersResult.getOrNull() ?: emptyList()
                 val tickets = ticketsResult.getOrNull() ?: emptyList()
                 
-                val totalRevenue = tickets.sumOf { it.event?.ticketPrice ?: 0.0 }
+                val totalRevenue = tickets.sumOf { ticket ->
+                    val eventPrice = ticket.event?.ticketPrice ?: 0.0
+                    val seatPrice = ticket.tableSeat?.price ?: 0.0
+                    val foodPrice = ticket.foodItems.sumOf { it.quantity * it.foodItem.price }
+                    eventPrice + seatPrice + foodPrice
+                }
                 
                 _statsState.value = AdminStatsState.Success(
                     totalEvents = events.size,

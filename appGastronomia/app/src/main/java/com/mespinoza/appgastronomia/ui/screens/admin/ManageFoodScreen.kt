@@ -188,7 +188,7 @@ fun CategoryCard(
                                 )
                             }
                             Column {
-                                Text(item.name, fontWeight = FontWeight.SemiBold)
+                                Text(item.name, fontWeight = FontWeight.SemiBold, color = DarkBlue)
                                 item.description?.let {
                                     Text(
                                         it,

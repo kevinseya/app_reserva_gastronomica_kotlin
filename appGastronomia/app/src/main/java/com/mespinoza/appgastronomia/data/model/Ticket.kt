@@ -69,7 +69,8 @@ data class FoodItem(
     val description: String?,
     val price: Double,
     val imageUrl: String?,
-    val categoryId: String
+    val categoryId: String,
+    val category: FoodCategory? = null
 )
 
 @Serializable
