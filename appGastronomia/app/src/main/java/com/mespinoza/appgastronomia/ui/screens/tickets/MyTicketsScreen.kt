@@ -107,7 +107,7 @@ fun MyTicketsScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         // Agrupar tickets por ID de pago (compra)
-                        val groupedTickets = state.tickets.groupBy { "${it.event?.id}-${it.status}" }
+                        val groupedTickets = state.tickets.groupBy { it.stripePaymentId ?: it.id }
                         
                         items(groupedTickets.values.toList()) { ticketsGroup ->
                             PurchaseCard(
