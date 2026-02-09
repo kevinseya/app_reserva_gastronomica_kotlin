@@ -1,4 +1,4 @@
-# 🎫 App Ticketera - Guía de Uso
+# 🎫 App Gastronomia Universitaria - Guía de Uso
 
 ## 📱 Credenciales de Acceso
 
@@ -83,7 +83,7 @@ El administrador tiene todas las funciones del cliente MÁS:
    - Descripción
    - Fecha (YYYY-MM-DD) *
    - Lugar *
-   - Precio *
+   - Precio * (decimal, p. ej. `3.50`)
    - Total de asientos *
    - URL de imagen
 
@@ -91,6 +91,7 @@ El administrador tiene todas las funciones del cliente MÁS:
    - Misma pantalla que crear
    - Campos pre-llenados
    - Guardar cambios
+   - Nota: los campos de precio aceptan valores decimales (ej. `4.50`).
 
 4. **Eliminar Evento**:
    - Diálogo de confirmación
@@ -201,7 +202,7 @@ El administrador tiene todas las funciones del cliente MÁS:
 
 ## 📝 Notas Importantes
 
-1. **Backend debe estar corriendo**: `npm run start:dev` en `d:\jwmaila\backend`
+1. **Backend debe estar corriendo**: `npm run start:dev` en `d:\mespinoza\backend`
 2. **Seed de datos**: Si no hay eventos, ejecutar `npx prisma db seed`
 3. **Base URL**: App usa `http://10.0.2.2:3000` para emulador
 4. **Stripe**: Usa claves de prueba configuradas en backend

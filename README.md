@@ -1,13 +1,13 @@
-# 🎫 Ticketera Universitaria
+# 🎫 App Gastronomia Universitaria
 
-Sistema completo para gestión y venta de tickets para eventos universitarios con app móvil y backend.
+Sistema completo para gestión y venta de tickets y reservas para eventos universitarios con la app móvil (`appGastronomia`) y el backend (`backend`).
 
 ## 📁 Estructura del Proyecto
 
 ```
-jwmaila/
+mespinoza/
 ├── backend/          # API REST con NestJS + PostgreSQL + Prisma
-└── appTicketera/     # Aplicación móvil Android (Kotlin + Compose)
+└── appGastronomia/   # Aplicación móvil Android (Kotlin + Compose)
 ```
 
 ## 🚀 Backend (NestJS)
@@ -38,6 +38,11 @@ Backend RESTful con las siguientes características:
 - [README Backend](backend/README.md)
 - [SETUP.md](backend/SETUP.md)
 - [API_DOCS.md](backend/API_DOCS.md)
+
+IMPORTANT: cambios recientes
+
+- Los precios ahora se manejan en formato decimal (ej. `4.50`) en la aplicación y en la base de datos. El backend convierte esos valores a centavos únicamente antes de crear el PaymentIntent en Stripe.
+- Tras actualizar a esta versión debes ejecutar la migración de Prisma y (si tienes datos previos en centavos) aplicar un script de conversión de datos (ver secciones Backend y Migración).
 
 ### 🏃 Inicio Rápido
 
@@ -131,7 +136,7 @@ Servidor en http://localhost:3000
 ### 🧪 Ejecutar en Emulador
 
 ```bash
-cd appTicketera
+cd appGastronomia
 ./gradlew assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```

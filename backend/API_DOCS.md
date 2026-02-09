@@ -1,4 +1,4 @@
-# 📖 Documentación de API - Ticketera Universitaria
+# 📖 Documentación de API - App Gastronomia Universitaria
 
 ## Autenticación
 

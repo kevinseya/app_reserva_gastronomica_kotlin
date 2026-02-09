@@ -1,6 +1,6 @@
-# Ticketera - App Móvil Android
+# Gastronomia App — App Móvil Android
 
-Aplicación móvil de venta de tickets para eventos artísticos, desarrollada con **Kotlin** y **Jetpack Compose**.
+Gastronomia App es la aplicación móvil de venta y gestión de tickets para eventos y reservas gastronómicas, desarrollada con **Kotlin** y **Jetpack Compose**.
 
 ## 🎨 Diseño
 
@@ -50,6 +50,7 @@ La aplicación sigue el patrón **MVVM (Model-View-ViewModel)** con las siguient
 - ✅ Navegación por eventos disponibles
 - ✅ Visualización de detalles del evento
 - ✅ Selección de asientos (matriz 10x10)
+	- Nota: los precios de evento, asientos y comida se manejan como `Double` (ej. 4.50). El backend (`Gastronomia API`) convierte esos decimales a centavos únicamente al crear el PaymentIntent para Stripe.
 - ✅ **Pago con Stripe Payment Sheet (Integrado)**
 - ✅ Visualización de tickets con QR
 - ✅ Perfil de usuario
@@ -81,6 +82,7 @@ La app integra **Stripe Payment Sheet** para pagos seguros:
 **Flujo de pago:**
 1. Usuario selecciona asientos → Clic en "Continuar"
 2. App crea Payment Intent en backend
+	- Importante: el backend suma los precios decimales (evento, asientos, comida) y luego multiplica por 100 para generar el `amount` en centavos que Stripe requiere.
 3. Stripe muestra UI nativa con formulario de tarjeta
 4. Usuario ingresa datos (seguros, nunca tocan nuestra app)
 5. Stripe procesa el pago
@@ -165,7 +167,7 @@ app/
 
 ## 👤 Autor
 
-Desarrollado para el sistema de ticketera universitaria.
+Desarrollado para App Gastronomia Universitaria.
 
 ## 📄 Licencia
 

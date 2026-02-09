@@ -1,10 +1,10 @@
-# 🎯 RESUMEN EJECUTIVO - Backend Ticketera Universitaria
+# 🎯 RESUMEN EJECUTIVO - Backend App Gastronomia Universitaria
 
 ## ✅ PROYECTO COMPLETADO CON ÉXITO
 
 ### 📋 Lo que se ha creado
 
-Se ha desarrollado un **backend completo y funcional** para una aplicación de ticketera universitaria usando:
+Se ha desarrollado un **backend completo y funcional** para la `App Gastronomia Universitaria` usando:
 
 - **NestJS** (Framework TypeScript para Node.js)
 - **PostgreSQL** (Base de datos)

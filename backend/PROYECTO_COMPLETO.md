@@ -2,7 +2,7 @@
 
 ## 📦 Proyecto Completo
 
-Se ha creado exitosamente el backend completo para la **Ticketera Universitaria** con las siguientes características:
+Se ha creado exitosamente el backend completo para **App Gastronomia Universitaria** con las siguientes características:
 
 ## 🗂️ Estructura de Archivos
 
