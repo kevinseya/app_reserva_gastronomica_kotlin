@@ -117,7 +117,7 @@ pnpm prisma migrate status
 
 ```bash
 # Inicializar repositorio (desde la raíz)
-cd d:\jwmaila
+cd d:\mespinoza
 git init
 git add .
 git commit -m "Initial commit: Backend completo"
@@ -172,7 +172,7 @@ Después de ejecutar `pnpm run prisma:seed`:
 
 ```bash
 # La estructura final será:
-jwmaila/
+mespinoza/
 ├── backend/     # ✅ COMPLETADO
 └── app/         # Crear próximamente para la app Kotlin
 ```

@@ -1,4 +1,4 @@
-# Integración de Stripe en Ticketera
+# Integración de Stripe en App Gastronomia Universitaria
 
 ## 📋 Resumen
 
@@ -80,17 +80,36 @@ fun createPaymentIntent(eventId: Int, seatIds: List<Int>) {
 **Backend (NestJS):**
 ```typescript
 // tickets.service.ts
-async createPaymentIntent(eventId: number, seatIds: number[]) {
-  const event = await this.prisma.event.findUnique({ where: { id: eventId } });
-  const amount = event.basePrice * seatIds.length * 100; // En centavos
-  
-  const paymentIntent = await this.stripe.paymentIntents.create({
-    amount: amount,
-    currency: 'ars',
-    automatic_payment_methods: { enabled: true },
-  });
-  
-  return { clientSecret: paymentIntent.client_secret };
+// Ejemplo: sumar precios decimales y convertir a centavos antes de crear PaymentIntent
+async createPaymentIntent(createTicketDto: CreateTicketDto) {
+    const event = await this.prisma.event.findUnique({ where: { id: createTicketDto.eventId } });
+
+    // 1) Precio base del evento por cantidad de asientos (decimales)
+    const eventTotal = (event.ticketPrice || 0) * createTicketDto.seatIds.length;
+
+    // 2) Precios por asiento (si existen precios por asiento en mesas)
+    const tableSeats = await this.prisma.tableSeat.findMany({ where: { id: { in: createTicketDto.seatIds } } });
+    const seatsExtra = tableSeats.reduce((acc, ts) => acc + (ts.price || 0), 0);
+
+    // 3) Comida (sumar precio * cantidad)
+    let foodTotal = 0;
+    for (const order of createTicketDto.foodOrders || []) {
+        for (const it of order.foodItems || []) {
+            const food = await this.prisma.foodItem.findUnique({ where: { id: it.foodId } });
+            if (food) foodTotal += (food.price || 0) * it.quantity;
+        }
+    }
+
+    const totalDecimal = eventTotal + seatsExtra + foodTotal;
+    const amount = Math.round(totalDecimal * 100); // convertir a centavos para Stripe
+
+    const paymentIntent = await this.stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'ars',
+        automatic_payment_methods: { enabled: true },
+    });
+
+    return { clientSecret: paymentIntent.client_secret, amount };
 }
 ```
 
@@ -120,7 +139,7 @@ LaunchedEffect(paymentState) {
     when (val state = paymentState) {
         is PaymentState.PaymentIntentCreated -> {
             val configuration = PaymentSheet.Configuration(
-                merchantDisplayName = "Ticketera"
+                merchantDisplayName = "App Gastronomia Universitaria"
             )
             
             paymentSheet.presentWithPaymentIntent(
@@ -264,11 +283,12 @@ Stripe provee su propia UI segura que incluye:
 ### Montos de Prueba
 
 ```kotlin
-// $100 ARS = 10,000 centavos
-val amount = 10000
-
-// En el backend siempre multiplicar por 100
-val amountInCents = basePrice * 100
+// Ejemplo: Si el evento vale 3.50, la silla 4.50 y pides 2 hamburguesas de 1.50:
+// eventTotal = 3.50
+// seatsExtra = 4.50
+// foodTotal = 1.50 * 2 = 3.00
+// totalDecimal = 3.50 + 4.50 + 3.00 = 11.00
+// Stripe amount (centavos) = Math.round(11.00 * 100) = 1100
 ```
 
 ## 📱 Estados de Pago

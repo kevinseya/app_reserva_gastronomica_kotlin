@@ -1,6 +1,6 @@
-# Backend - Ticketera Universitaria
+# Gastronomia API
 
-Backend para aplicación móvil de ticketera universitaria desarrollado con NestJS, PostgreSQL, Prisma y Stripe.
+API backend para `Gastronomia App`, desarrollada con NestJS, PostgreSQL, Prisma y Stripe. Provee endpoints para eventos, gestión de asientos, pagos con Stripe y generación/verificación de tickets.
 
 ## 🚀 Tecnologías
 
@@ -88,7 +88,38 @@ backend/
 - Campos: email, password (hasheado), firstName, lastName
 
 ### Event
-- Información del evento, precio, 100 asientos (10x10)
+- Información del evento, precio (decimal, e.g. 3.50), total de asientos.
+
+### Cambios importantes sobre precios
+
+- En versiones anteriores algunos precios (asientos, items de menú) se almacenaban como enteros en centavos. En esta versión los campos de precio se almacenan como decimales (Float) y representan el importe en la moneda base (por ejemplo `4.50`).
+- Al crear un `PaymentIntent` para Stripe el backend multiplicará cada importe decimal por 100 para obtener centavos (valor entero) que exige Stripe.
+
+Si actualizarás desde una versión anterior que usaba centavos (INT), realiza estos pasos (ejemplo PostgreSQL) para convertir los valores existentes:
+
+```sql
+-- Sólo ejecutar si tus datos actuales están en centavos (p. ej. 450 para $4.50)
+BEGIN;
+UPDATE table_seats SET price = price::numeric / 100.0 WHERE price IS NOT NULL;
+UPDATE event_tables SET seatPrice = seatPrice::numeric / 100.0 WHERE seatPrice IS NOT NULL;
+UPDATE menu_items SET price = price::numeric / 100.0 WHERE price IS NOT NULL;
+UPDATE order_items SET price = price::numeric / 100.0 WHERE price IS NOT NULL;
+UPDATE orders SET total = total::numeric / 100.0 WHERE total IS NOT NULL;
+COMMIT;
+```
+
+Luego ejecuta la migración de Prisma para adaptar el esquema (se recomienda respaldar la BD antes).
+
+### Migración Prisma
+
+1. Crear y aplicar migración:
+
+```bash
+pnpm prisma migrate dev --name prices-to-float
+pnpm prisma generate
+```
+
+2. Si migraste datos manualmente (script SQL), reinicia el servidor.
 
 ### Seat
 - Posición: fila (1-10), columna (1-10), Estado: isOccupied
