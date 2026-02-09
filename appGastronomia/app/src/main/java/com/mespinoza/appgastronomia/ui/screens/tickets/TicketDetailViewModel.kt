@@ -32,8 +32,10 @@ class TicketDetailViewModel @Inject constructor(
                 val allTickets = allTicketsResult.getOrNull()!!
                 
                 // Agrupamos por el ID de pago para mostrar la compra completa
-                val relatedTickets = allTickets.filter { 
-                    it.event?.id == currentTicket.event?.id && it.status == currentTicket.status
+                val relatedTickets = if (currentTicket.stripePaymentId != null) {
+                    allTickets.filter { it.stripePaymentId == currentTicket.stripePaymentId }
+                } else {
+                    listOf(currentTicket)
                 }
                 
                 // Si por alguna razón no hay match (data antigua), mostramos al menos el actual
