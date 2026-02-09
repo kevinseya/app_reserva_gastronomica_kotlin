@@ -33,31 +33,56 @@ export class TicketsService {
       throw new NotFoundException('Evento no encontrado');
     }
 
-    // Verificar que todos los asientos existen y están disponibles
-    const seats = await this.prisma.seat.findMany({
+    // Intentar detectar si se están comprando table_seats (mesas)
+    const tableSeats = await this.prisma.tableSeat.findMany({
       where: { id: { in: createTicketDto.seatIds } },
+      include: { table: true },
     });
 
-    if (seats.length !== createTicketDto.seatIds.length) {
-      throw new NotFoundException('Uno o más asientos no encontrados');
-    }
+    let amountCents: number;
 
-    const occupiedSeats = seats.filter(seat => seat.isOccupied);
-    if (occupiedSeats.length > 0) {
-      throw new ConflictException('Uno o más asientos ya están ocupados');
-    }
+    if (tableSeats.length === createTicketDto.seatIds.length) {
+      // Comprando asientos de mesa
+      const unavailable = tableSeats.filter(ts => ts.reservationId !== null);
+      if (unavailable.length > 0) {
+        throw new ConflictException('Uno o más asientos de mesa ya están reservados');
+      }
 
-    const wrongEventSeats = seats.filter(seat => seat.eventId !== createTicketDto.eventId);
-    if (wrongEventSeats.length > 0) {
-      throw new BadRequestException('Uno o más asientos no pertenecen a este evento');
-    }
+      const tableMismatch = tableSeats.filter(ts => ts.table.eventId !== createTicketDto.eventId);
+      if (tableMismatch.length > 0) {
+        throw new BadRequestException('Uno o más asientos de mesa no pertenecen a este evento');
+      }
 
-    // Calcular el monto total
-    const totalAmount = event.ticketPrice * createTicketDto.seatIds.length;
+      // Sumar precios: precio base del evento (una sola vez) + precio por asiento (tableSeat.price en centavos)
+      const eventPriceCents = Math.round(event.ticketPrice * 100);
+      const seatsTotalCents = tableSeats.reduce((acc, ts) => acc + (ts.price || 0), 0);
+      amountCents = eventPriceCents + seatsTotalCents;
+    } else {
+      // Flujo tradicional: seats grid
+      const seats = await this.prisma.seat.findMany({
+        where: { id: { in: createTicketDto.seatIds } },
+      });
+
+      if (seats.length !== createTicketDto.seatIds.length) {
+        throw new NotFoundException('Uno o más asientos no encontrados');
+      }
+
+      const occupiedSeats = seats.filter(seat => seat.isOccupied);
+      if (occupiedSeats.length > 0) {
+        throw new ConflictException('Uno o más asientos ya están ocupados');
+      }
+
+      const wrongEventSeats = seats.filter(seat => seat.eventId !== createTicketDto.eventId);
+      if (wrongEventSeats.length > 0) {
+        throw new BadRequestException('Uno o más asientos no pertenecen a este evento');
+      }
+
+      amountCents = Math.round(event.ticketPrice * 100) * createTicketDto.seatIds.length;
+    }
 
     // Crear el PaymentIntent en Stripe
     const paymentIntent = await this.stripe.paymentIntents.create({
-      amount: Math.round(totalAmount * 100), // Stripe usa centavos
+      amount: amountCents, // valor en centavos
       currency: 'usd',
       automatic_payment_methods: {
         enabled: true,
@@ -72,7 +97,7 @@ export class TicketsService {
 
     return {
       clientSecret: paymentIntent.client_secret,
-      amount: totalAmount,
+      amount: amountCents,
       paymentIntentId: paymentIntent.id,
     };
   }
@@ -93,7 +118,95 @@ export class TicketsService {
 
     const seatIdArray = seatIds.split(',');
 
-    // Verificar nuevamente que los asientos estén disponibles
+    // Intentamos detectar si los seatIds pertenecen a table_seats (disposición por mesas)
+    const tableSeats = await this.prisma.tableSeat.findMany({
+      where: { id: { in: seatIdArray } },
+      include: { table: true },
+    });
+
+    if (tableSeats.length === seatIdArray.length) {
+      // Flujo de compra por mesa / asientos de mesa
+      const tickets = await this.prisma.$transaction(async (prisma) => {
+        // Comprobar disponibilidad (reservationId debe ser null)
+        const available = await prisma.tableSeat.findMany({
+          where: { id: { in: seatIdArray }, reservationId: null },
+          include: { table: true },
+        });
+
+        if (available.length !== seatIdArray.length) {
+          throw new ConflictException('Uno o más asientos de mesa ya están reservados');
+        }
+
+        // Crear una reserva que agrupe la compra por mesa
+        const firstTable = available[0].table;
+        const reservation = await prisma.reservation.create({
+          data: {
+            userId,
+            eventId,
+            eventTableId: firstTable.id,
+            datetime: new Date(),
+            partySize: available.length,
+            status: 'CONFIRMED',
+            requestedSeatIds: seatIdArray.join(','),
+          },
+        });
+
+        // Marcar table_seats con reservationId
+        await prisma.tableSeat.updateMany({
+          where: { id: { in: seatIdArray } },
+          data: { reservationId: reservation.id },
+        });
+
+        // Marcar la mesa como ocupada
+        await prisma.eventTable.update({
+          where: { id: firstTable.id },
+          data: { status: 'OCCUPIED' },
+        });
+
+        // Crear tickets asociados a las table_seats (campo tableSeatId en Ticket)
+        const createdTickets: any[] = [];
+        for (const ts of available) {
+          // Generar payload para QR que incluya mesa y número de asiento
+          const payload = {
+            id: randomUUID(),
+            type: 'table_seat',
+            eventId,
+            userId,
+            tableId: ts.table?.id ?? null,
+            tableName: ts.table?.name ?? null,
+            seatIndex: ts.index,
+            tableSeatId: ts.id,
+            createdAt: new Date().toISOString(),
+            paymentIntentId
+          };
+          const qrCode = Buffer.from(JSON.stringify(payload)).toString('base64');
+
+          const ticket = await prisma.ticket.create({
+            data: {
+              userId,
+              eventId,
+              tableSeatId: ts.id,
+              qrCode,
+              stripePaymentId: paymentIntentId,
+              status: TicketStatus.PAID,
+            },
+            include: {
+              event: true,
+              tableSeat: {
+                include: { table: true }
+              },
+            },
+          });
+          createdTickets.push(ticket);
+        }
+
+        return createdTickets;
+      }, { timeout: 15000 });
+
+      return tickets;
+    }
+
+    // Si no son table_seats, seguimos con el flujo tradicional sobre `seats`
     const seats = await this.prisma.seat.findMany({
       where: { id: { in: seatIdArray } },
     });
@@ -107,7 +220,7 @@ export class TicketsService {
       throw new ConflictException('Uno o más asientos ya fueron ocupados');
     }
 
-    // Crear tickets
+    // Crear tickets (asientos tradicionales)
     const tickets = await this.createTicketsWithoutStripe(
       userId,
       eventId,
@@ -124,6 +237,7 @@ export class TicketsService {
       include: {
         event: true,
         seat: true,
+        tableSeat: { include: { table: true } },
       },
       orderBy: { purchaseDate: 'desc' },
     });
@@ -135,6 +249,7 @@ export class TicketsService {
       include: {
         event: true,
         seat: true,
+        tableSeat: { include: { table: true } },
         user: {
           select: {
             id: true,
@@ -184,8 +299,22 @@ export class TicketsService {
         }
 
         const createdTickets: any[] = [];
+        // Obtener detalles de asientos para incluir fila/columna en el QR
+        const seatsInfo = await prisma.seat.findMany({ where: { id: { in: seatIds } } });
         for (const seatId of seatIds) {
-          const qrCode = `TCK-${randomUUID()}`;
+          const seatInfo = seatsInfo.find(s => s.id === seatId);
+          const payload = {
+            id: randomUUID(),
+            type: 'seat',
+            eventId,
+            userId,
+            seatId,
+            row: seatInfo?.row ?? null,
+            column: seatInfo?.column ?? null,
+            createdAt: new Date().toISOString(),
+            paymentId
+          };
+          const qrCode = Buffer.from(JSON.stringify(payload)).toString('base64');
 
           const ticket = await prisma.ticket.create({
             data: {
@@ -220,6 +349,7 @@ export class TicketsService {
       include: {
         event: true,
         seat: true,
+        tableSeat: true,
         user: {
           select: {
             id: true,
@@ -269,6 +399,7 @@ export class TicketsService {
       include: {
         event: true,
         seat: true,
+        tableSeat: { include: { table: true } },
         user: {
           select: {
             id: true,

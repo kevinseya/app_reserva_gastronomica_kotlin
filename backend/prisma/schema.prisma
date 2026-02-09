@@ -1,12 +1,186 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  password     String
+  firstName    String
+  lastName     String
+  role         UserRole      @default(CLIENT)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  reservations Reservation[]
+  tickets      Ticket[]
+
+  @@map("users")
+}
+
+model Event {
+  id           String        @id @default(uuid())
+  name         String
+  description  String?
+  date         DateTime
+  venue        String
+  imageUrl     String?
+  ticketPrice  Float
+  totalSeats   Int           @default(100)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  eventTables  EventTable[]
+  reservations Reservation[]
+  seats        Seat[]
+  tickets      Ticket[]
+
+  @@map("events")
+}
+
+model Seat {
+  id         String   @id @default(uuid())
+  eventId    String
+  row        Int
+  column     Int
+  isOccupied Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ticket     Ticket?
+
+  @@unique([eventId, row, column])
+  @@map("seats")
+}
+
+model Ticket {
+  id              String       @id @default(uuid())
+  userId          String
+  eventId         String
+  seatId          String?      @unique
+  tableSeatId     String?      @unique
+  qrCode          String       @unique
+  stripePaymentId String?
+  status          TicketStatus @default(PENDING)
+  purchaseDate    DateTime     @default(now())
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  event           Event        @relation(fields: [eventId], references: [id])
+  seat            Seat?        @relation(fields: [seatId], references: [id])
+  tableSeat       TableSeat?   @relation(fields: [tableSeatId], references: [id])
+  user            User         @relation(fields: [userId], references: [id])
+
+  @@map("tickets")
+}
+
+model Table {
+  id        String   @id @default(uuid())
+  number    Int
+  seats     Int      @default(4)
+  status    String   @default("AVAILABLE")
+  location  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("tables")
+}
+
+model EventTable {
+  id           String        @id @default(uuid())
+  eventId      String
+  name         String?
+  x            Int
+  y            Int
+  rotation     Int?
+  capacity     Int           @default(4)
+  seatPrice    Int?
+  status       String        @default("AVAILABLE")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  reservations Reservation[]
+  seats        TableSeat[]
+
+  @@map("event_tables")
+}
+
+model TableSeat {
+  id            String       @id @default(uuid())
+  tableId       String
+  index         Int
+  price         Int
+  reservationId String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  reservation   Reservation? @relation(fields: [reservationId], references: [id])
+  table         EventTable   @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  ticket        Ticket?
+
+  @@unique([tableId, index])
+  @@map("table_seats")
+}
+
+model Reservation {
+  id               String      @id @default(uuid())
+  userId           String
+  datetime         DateTime
+  partySize        Int
+  status           String      @default("PENDING")
+  notes            String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  eventId          String
+  eventTableId     String
+  expiresAt        DateTime?
+  requestedSeatIds String?
+  orders           Order[]
+  event            Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  table            EventTable  @relation(fields: [eventTableId], references: [id], onDelete: SetNull)
+  user             User        @relation(fields: [userId], references: [id])
+  seats            TableSeat[]
+
+  @@map("reservations")
+}
+
+model MenuItem {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  price       Int
+  imageUrl    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  orderItems  OrderItem[]
+
+  @@map("menu_items")
+}
+
+model Order {
+  id              String       @id @default(uuid())
+  reservationId   String?
+  total           Int          @default(0)
+  status          String       @default("PENDING")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  paymentIntentId String?
+  items           OrderItem[]
+  reservation     Reservation? @relation(fields: [reservationId], references: [id])
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  menuItemId String
+  quantity   Int      @default(1)
+  price      Int
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
 }
 
 enum UserRole {
@@ -19,68 +193,4 @@ enum TicketStatus {
   PAID
   USED
   CANCELLED
-}
-
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  firstName String
-  lastName  String
-  role      UserRole @default(CLIENT)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tickets   Ticket[]
-
-  @@map("users")
-}
-
-model Event {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  date        DateTime
-  venue       String
-  imageUrl    String?
-  ticketPrice Float
-  totalSeats  Int      @default(100) // 10x10
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  seats       Seat[]
-  tickets     Ticket[]
-
-  @@map("events")
-}
-
-model Seat {
-  id        String   @id @default(uuid())
-  eventId   String
-  row       Int      // 1-10
-  column    Int      // 1-10
-  isOccupied Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  ticket    Ticket?
-
-  @@unique([eventId, row, column])
-  @@map("seats")
-}
-
-model Ticket {
-  id              String       @id @default(uuid())
-  userId          String
-  eventId         String
-  seatId          String       @unique
-  qrCode          String       @unique
-  stripePaymentId String?
-  status          TicketStatus @default(PENDING)
-  purchaseDate    DateTime     @default(now())
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  user            User         @relation(fields: [userId], references: [id])
-  event           Event        @relation(fields: [eventId], references: [id])
-  seat            Seat         @relation(fields: [seatId], references: [id])
-
-  @@map("tickets")
 }

@@ -18,6 +18,9 @@ import { TicketsModule } from './tickets/tickets.module';
     UsersModule,
     EventsModule,
     TicketsModule,
+    // new modules
+    require('./reservations/reservations.module').ReservationsModule,
+    require('./orders/orders.module').OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
