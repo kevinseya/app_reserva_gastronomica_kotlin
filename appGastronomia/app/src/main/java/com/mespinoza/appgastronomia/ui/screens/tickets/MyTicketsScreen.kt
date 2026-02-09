@@ -106,10 +106,13 @@ fun MyTicketsScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(state.tickets) { ticket ->
-                            TicketCard(
-                                ticket = ticket,
-                                onClick = { onNavigateToTicketDetail(ticket.id) }
+                        // Agrupar tickets por ID de pago (compra)
+                        val groupedTickets = state.tickets.groupBy { "${it.event?.id}-${it.status}" }
+                        
+                        items(groupedTickets.values.toList()) { ticketsGroup ->
+                            PurchaseCard(
+                                tickets = ticketsGroup,
+                                onClick = { onNavigateToTicketDetail(ticketsGroup.first().id) }
                             )
                         }
                     }
@@ -148,15 +151,18 @@ fun MyTicketsScreen(
 }
 
 @Composable
-fun TicketCard(
-    ticket: Ticket,
+fun PurchaseCard(
+    tickets: List<Ticket>,
     onClick: () -> Unit
 ) {
-    val totalPrice = remember(ticket) {
-        val eventPrice = ticket.event?.ticketPrice ?: 0.0
-        val seatPrice = ticket.tableSeat?.price ?: 0.0
-        val foodPrice = ticket.foodItems.sumOf { it.quantity * it.foodItem.price }
-        eventPrice + seatPrice + foodPrice
+    val mainTicket = tickets.first()
+    val totalPrice = remember(tickets) {
+        tickets.sumOf { ticket ->
+            val eventPrice = ticket.event?.ticketPrice ?: 0.0
+            val seatPrice = ticket.tableSeat?.price ?: 0.0
+            val foodPrice = ticket.foodItems.sumOf { it.quantity * it.foodItem.price }
+            eventPrice + seatPrice + foodPrice
+        }
     }
 
     Card(
@@ -174,7 +180,7 @@ fun TicketCard(
             // Icono de estado
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = when (ticket.status) {
+                color = when (mainTicket.status) {
                     TicketStatus.PAID -> SuccessGreen
                     TicketStatus.PENDING -> WarningOrange
                     TicketStatus.CANCELLED -> ErrorRed
@@ -184,7 +190,7 @@ fun TicketCard(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = when (ticket.status) {
+                        imageVector = when (mainTicket.status) {
                             TicketStatus.PAID -> Icons.Default.CheckCircle
                             TicketStatus.PENDING -> Icons.Default.Schedule
                             TicketStatus.CANCELLED -> Icons.Default.Cancel
@@ -200,22 +206,22 @@ fun TicketCard(
             
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = ticket.event?.name ?: "Evento",
+                    text = mainTicket.event?.name ?: "Evento",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = DarkBlue
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Asiento: Fila ${ticket.seat?.row}, N° ${ticket.seat?.column}",
+                    text = "${tickets.size} Entradas",
                     style = MaterialTheme.typography.bodySmall,
                     color = Gray
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = ticket.status.name,
+                    text = mainTicket.status.name,
                     style = MaterialTheme.typography.labelSmall,
-                    color = when (ticket.status) {
+                    color = when (mainTicket.status) {
                         TicketStatus.PAID -> SuccessGreen
                         TicketStatus.PENDING -> WarningOrange
                         TicketStatus.CANCELLED -> ErrorRed
@@ -231,9 +237,9 @@ fun TicketCard(
                     fontWeight = FontWeight.Bold,
                     color = DarkBlue
                 )
-                if (ticket.event?.date != null) {
+                if (mainTicket.event?.date != null) {
                     Text(
-                        text = formatDate(ticket.event.date),
+                        text = formatDate(mainTicket.event.date),
                         style = MaterialTheme.typography.bodySmall,
                         color = Gray
                     )
