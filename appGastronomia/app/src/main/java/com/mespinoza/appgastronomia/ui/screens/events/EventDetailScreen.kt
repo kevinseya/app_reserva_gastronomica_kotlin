@@ -174,22 +174,22 @@ fun EventDetailScreen(
                         val eventBasePrice = (eventDetailState as? EventDetailState.Success)?.event?.ticketPrice ?: 0.0
                         val eventPriceTotal = selectedSeats.size * eventBasePrice
 
-                        Column {
-                            Text("${selectedSeats.size} asientos", style = MaterialTheme.typography.bodyMedium)
-                            if (selectedFoodItems.isNotEmpty()) {
-                                Text("+ ${selectedFoodItems.size} comidas", style = MaterialTheme.typography.bodySmall)
-                            }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            // Desglose
+                        Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                             if (selectedSeats.isNotEmpty()) {
-                                Text("Evento: ${formatPrice(eventPriceTotal)}", style = MaterialTheme.typography.bodySmall)
-                                Text("Asientos: ${formatPrice(seatsPrice)}", style = MaterialTheme.typography.bodySmall)
+                                Text("${selectedSeats.size}x Entrada: ${formatPrice(eventPriceTotal)}", style = MaterialTheme.typography.bodySmall)
+                                if (seatsPrice > 0) {
+                                    Text("Valor Asientos: ${formatPrice(seatsPrice)}", style = MaterialTheme.typography.bodySmall)
+                                }
                             }
                             if (selectedFoodItems.isNotEmpty()) {
-                                Text("Comida: ${formatPrice(foodPrice)}", style = MaterialTheme.typography.bodySmall)
+                                val groupedItems = selectedFoodItems.groupBy { it.name }
+                                groupedItems.forEach { (name, items) ->
+                                    val total = items.sumOf { it.price }
+                                    Text("${items.size}x $name: ${formatPrice(total)}", style = MaterialTheme.typography.bodySmall)
+                                }
                             }
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(formatPrice(finalTotal), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text("Total: ${formatPrice(finalTotal)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         }
                         Button(
                             onClick = { 
