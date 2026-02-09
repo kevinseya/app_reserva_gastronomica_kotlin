@@ -13,6 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.mespinoza.appgastronomia.ui.theme.*
 import com.mespinoza.appgastronomia.data.local.UserPreferences
 
@@ -30,6 +33,17 @@ fun AdminScreen(
     val userEmail = userPreferences.getUserEmail() ?: ""
     val userRole = userPreferences.getUserRole() ?: ""
     val statsState by statsViewModel.statsState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                statsViewModel.loadStats()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     
     Scaffold(
         topBar = {
