@@ -103,4 +103,45 @@ export class EventsController {
   remove(@Param('id') id: string) {
     return this.eventsService.remove(id);
   }
+
+  @Post(':id/tables/auto')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  generateTables(@Param('id') id: string, @Body() body: any) {
+    // body: { tablesCount, capacity }
+    const dto = { tablesCount: Number(body.tablesCount || 0), capacity: Number(body.capacity || 4) };
+    if (dto.capacity > 6) dto.capacity = 6;
+    return this.eventsService.generateTables(id, dto);
+  }
+
+  @Post(':id/tables')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  createEventTable(@Param('id') id: string, @Body() body: any) {
+    // body: { name, x, y, rotation, capacity, seatPrice }
+    return this.eventsService.createEventTable(id, body);
+  }
+
+  @Get(':id/tables')
+  getEventTables(@Param('id') id: string) {
+    return this.eventsService.getEventTables(id);
+  }
+
+  @Patch(':id/tables/:tableId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  updateTable(
+    @Param('id') id: string,
+    @Param('tableId') tableId: string,
+    @Body() body: any,
+  ) {
+    return this.eventsService.updateEventTable(id, tableId, body);
+  }
+
+  @Delete(':id/tables/:tableId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  removeTable(@Param('id') id: string, @Param('tableId') tableId: string) {
+    return this.eventsService.removeEventTable(id, tableId);
+  }
 }

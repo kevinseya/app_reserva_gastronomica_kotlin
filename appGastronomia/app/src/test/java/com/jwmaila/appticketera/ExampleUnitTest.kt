@@ -1,4 +1,4 @@
-package com.jwmaila.appticketera
+package com.mespinoza.appgastronomia
 
 import org.junit.Test
 
