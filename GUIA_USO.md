@@ -1,4 +1,4 @@
-# 🎫 App Gastronomia Universitaria - Guía de Uso
+# 🎫 App Gastronomía Universitaria - Guía de Uso
 
 ## 📱 Credenciales de Acceso
 
@@ -11,6 +11,15 @@
 - **Email**: `cliente@test.com`
 - **Contraseña**: `cliente123`
 - **Rol**: CLIENT
+
+## 💳 Datos para Pagos (Stripe Testing)
+
+Para simular compras exitosas o fallidas, utiliza las siguientes tarjetas de prueba:
+
+- **✅ Pago Exitoso**: `4242 4242 4242 4242`
+- **❌ Tarjeta Rechazada**: `4000 0000 0000 0002`
+- **Fecha de Expiración**: Cualquier fecha futura (ej. 12/30).
+- **CVC**: Cualquier número de 3 dígitos (ej. 123).
 
 ---
 
@@ -31,8 +40,10 @@ El cliente tiene acceso a:
    - Ver detalles del evento
 
 2. **Detalle de Evento**:
-   - Seleccionar asientos disponibles
-   - Comprar tickets con Stripe Payment Sheet
+   - Seleccionar **mesas y asientos** disponibles en el mapa
+   - Explorar el menú y **agregar comida/bebidas por categorías**
+   - Ver resumen de compra (Tickets + Comida)
+   - Pagar con Stripe Payment Sheet
    - Ver información completa del evento
 
 3. **Mis Tickets**:
@@ -145,8 +156,8 @@ El administrador tiene todas las funciones del cliente MÁS:
 - 🏷️ **Badge de rol**: Muestra si eres "Admin" o "Cliente"
 - ⋮ **Menú contextual**: Opciones diferentes según tu rol
 - 🎨 Colores distintivos:
-  - Admin: Azul pastel
-  - Cliente: Azul muy claro
+  - Admin: Tonos dorados/amarillos
+  - Cliente: Tonos amarillos claros
 
 ### Perfil
 - 👤 Avatar con inicial del nombre
@@ -171,7 +182,7 @@ El administrador tiene todas las funciones del cliente MÁS:
 
 ### Logout
 - Limpia completamente `UserPreferences`
-- Elimina token de sesión
+- Elimina token de sesión JWT
 - Redirige a pantalla de login
 - No deja rastro de sesión anterior
 
@@ -183,8 +194,8 @@ El administrador tiene todas las funciones del cliente MÁS:
 1. Login con `cliente@test.com` / `cliente123`
 2. Ver eventos disponibles
 3. Buscar evento específico
-4. Seleccionar asientos
-5. Pagar con Stripe
+4. Seleccionar **mesas/asientos** y agregar **comida** al pedido
+5. Pagar el total con Stripe
 6. Ver ticket en "Mis Tickets"
 7. Cerrar sesión desde Perfil
 
@@ -203,7 +214,7 @@ El administrador tiene todas las funciones del cliente MÁS:
 ## 📝 Notas Importantes
 
 1. **Backend debe estar corriendo**: `npm run start:dev` en `d:\mespinoza\backend`
-2. **Seed de datos**: Si no hay eventos, ejecutar `npx prisma db seed`
+2. **Seed de datos**: Si no hay eventos, ejecutar `pnpm run prisma:seed`
 3. **Base URL**: App usa `http://10.0.2.2:3000` para emulador
 4. **Stripe**: Usa claves de prueba configuradas en backend
 5. **Roles**: Se asignan automáticamente al crear usuario en seed
