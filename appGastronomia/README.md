@@ -1,17 +1,17 @@
-# Gastronomia App — App Móvil Android
+# Gastronomía App — App Móvil Android
 
 Gastronomia App es la aplicación móvil de venta y gestión de tickets para eventos y reservas gastronómicas, desarrollada con **Kotlin** y **Jetpack Compose**.
 
 ## 🎨 Diseño
 
-La app utiliza una paleta de colores personalizada en tonos azules:
-- **Dark Blue** (#3E5F8A) - Principal
-- **Medium Blue** (#5783BC) - Primario
-- **Light Blue** (#6A9CDE) - Secundario
-- **Very Light Blue** (#A0C5F7) - Acento
-- **Pastel Blue** (#CADFFB) - Fondo
+La aplicación utiliza **Material Design 3** con una paleta de colores personalizada y soporte para modo claro/oscuro, implementada mediante Jetpack Compose.
 
-El diseño está inspirado en React Native con Tailwind, adaptado a Material Design 3 con Jetpack Compose.
+**Paleta "Sabores" (Amarillos y Negros):**
+- **DarkAccent**: `#B87400`
+- **PrimaryYellow**: `#F6A700`
+- **LightYellow**: `#FED353`
+- **DarkGray**: `#161716`
+- **NearBlack**: `#090909`
 
 ## 🏗️ Arquitectura
 
@@ -49,7 +49,9 @@ La aplicación sigue el patrón **MVVM (Model-View-ViewModel)** con las siguient
 - ✅ Registro e inicio de sesión
 - ✅ Navegación por eventos disponibles
 - ✅ Visualización de detalles del evento
-- ✅ Selección de asientos (matriz 10x10)
+- ✅ **Selección de mesas y asientos** (Mapa interactivo)
+- ✅ **Menú de comidas**: Exploración de platillos y bebidas por categorías
+- ✅ **Carrito de compras**: Suma de tickets de asientos + órdenes de comida
 	- Nota: los precios de evento, asientos y comida se manejan como `Double` (ej. 4.50). El backend (`Gastronomia API`) convierte esos decimales a centavos únicamente al crear el PaymentIntent para Stripe.
 - ✅ **Pago con Stripe Payment Sheet (Integrado)**
 - ✅ Visualización de tickets con QR
@@ -81,7 +83,7 @@ La app integra **Stripe Payment Sheet** para pagos seguros:
 
 **Flujo de pago:**
 1. Usuario selecciona asientos → Clic en "Continuar"
-2. App crea Payment Intent en backend
+2. App solicita creación de Payment Intent al backend
 	- Importante: el backend suma los precios decimales (evento, asientos, comida) y luego multiplica por 100 para generar el `amount` en centavos que Stripe requiere.
 3. Stripe muestra UI nativa con formulario de tarjeta
 4. Usuario ingresa datos (seguros, nunca tocan nuestra app)
@@ -142,7 +144,7 @@ app/
 
 ## 🎯 Próximos Pasos
 
-1. ~~**Integración completa de Stripe**~~ ✅ **COMPLETADO**
+1. **Integración completa de Stripe** ✅ **COMPLETADO**
 2. **Escaneo QR real**: Integrar la cámara con ZXing
 3. **Generación de QR**: Mostrar códigos QR reales en los tickets
 4. **Caché local**: Room database para funcionamiento offline

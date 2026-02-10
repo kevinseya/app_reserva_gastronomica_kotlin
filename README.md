@@ -19,7 +19,8 @@ Backend RESTful con las siguientes características:
 - Autenticación JWT
 - Roles de Usuario: ADMIN y CLIENT
 - Gestión de eventos (CRUD)
-- Sistema de asientos (10x10)
+- **Reserva de mesas y asientos** (Mapa interactivo)
+- **Venta de comida y bebidas por categorías**
 - Pagos con Stripe
 - Tickets con QR
 - Validación de entrada por escaneo
@@ -73,20 +74,6 @@ Servidor en http://localhost:3000
 - Kotlinx Serialization
 - Stripe Android SDK (PaymentSheet)
 - ZXing (escáner QR)
-
-### 🎨 Paleta de colores
-
-- DarkBlue: #3E5F8A
-- MediumBlue: #5783BC
-- LightBlue: #6A9CDE
-- VeryLightBlue: #A0C5F7
-- PastelBlue: #CADFFB
-- LightBlueGray: #E8F1F8
-- Gray: #9E9E9E
-- LightGray: #F5F5F5
-- ErrorRed: #D32F2F
-- SuccessGreen: #388E3C
-- WarningOrange: #F57C00
 
 ### 🧱 Componentes UI (Compose)
 
@@ -164,9 +151,15 @@ Asegúrate de tener el backend corriendo en tu PC y el celular en la misma red W
 - Imagen y descripción
 
 ### Seat
-- Posición (fila, columna)
+- Relación con Mesa (Table)
+- Posición y número
 - Estado de ocupación
 - Relación con evento
+
+### Food & Menu
+- **Category**: Categorías de comida (Entradas, Platos Fuertes, Bebidas)
+- **FoodItem**: Productos con precio, imagen y descripción
+- **Order**: Registro de comida comprada junto con los tickets
 
 ### Ticket
 - Relación con usuario, evento y asiento
@@ -178,9 +171,10 @@ Asegúrate de tener el backend corriendo en tu PC y el celular en la misma red W
 
 ### Compra
 1. Cliente selecciona evento
-2. Elige asientos
-3. Paga con Stripe
-4. Se generan tickets y QR
+2. Elige **mesas y asientos** en el mapa
+3. Agrega **comida y bebidas** desde el menú por categorías
+4. Paga el total (Tickets + Comida) con Stripe
+5. Se generan tickets y QR
 5. Los tickets aparecen en Mis Tickets
 
 ### Validación

@@ -1,4 +1,4 @@
-# 🎯 RESUMEN EJECUTIVO - Backend App Gastronomia Universitaria
+# 🎯 Documentación Técnica - Backend App Gastronomía
 
 ## ✅ PROYECTO COMPLETADO CON ÉXITO
 
@@ -26,16 +26,17 @@ Se ha desarrollado un **backend completo y funcional** para la `App Gastronomia 
 1. ✅ Registrarse en la plataforma
 2. ✅ Iniciar sesión con seguridad (JWT)
 3. ✅ Buscar y ver eventos disponibles
-4. ✅ Ver mapa de asientos (10x10)
-5. ✅ Comprar tickets con Stripe
-6. ✅ Ver sus tickets con código QR
-7. ✅ Acceder a su perfil
+5. ✅ **Seleccionar mesas y asientos** disponibles
+6. ✅ **Explorar menú de comidas** filtrado por categorías
+7. ✅ Comprar tickets y comida en una sola transacción (Stripe)
+8. ✅ Ver sus tickets con código QR
+9. ✅ Acceder a su perfil
 
 ### 📊 Números del Proyecto
 
 - **19 Endpoints API** completamente funcionales
 - **4 Módulos** principales (Auth, Users, Events, Tickets)
-- **4 Tablas** en base de datos (Users, Events, Seats, Tickets)
+- **Tablas Clave**: Users, Events, Seats, Tickets, **Categories**, **FoodItems**, **Orders**
 - **100 Asientos** por evento (matriz 10x10)
 - **2 Roles** de usuario (Admin, Client)
 - **4 Estados** de ticket (Pending, Paid, Used, Cancelled)
@@ -108,24 +109,24 @@ Al ejecutar el seed se crean:
 
 **Autenticación (Público):**
 - POST `/auth/register` - Registro
-- POST `/auth/login` - Login
-- GET `/auth/profile` - Ver perfil (requiere JWT)
+- POST `/auth/login` - Login (Retorna JWT)
+- GET `/auth/profile` - Ver perfil del usuario actual (requiere JWT)
 
 **Eventos (Público para ver, Admin para gestionar):**
-- GET `/events` - Listar eventos
-- GET `/events/:id` - Ver evento
-- GET `/events/:id/seats` - Ver asientos
-- POST `/events` - Crear (Admin)
-- PATCH `/events/:id` - Actualizar (Admin)
-- DELETE `/events/:id` - Eliminar (Admin)
+- GET `/events` - Listar todos los eventos
+- GET `/events/:id` - Ver detalles de un evento
+- GET `/events/:id/seats` - Ver mapa de asientos y disponibilidad
+- POST `/events` - Crear nuevo evento (Admin)
+- PATCH `/events/:id` - Actualizar evento (Admin)
+- DELETE `/events/:id` - Eliminar evento (Admin)
 
 **Tickets (Requiere autenticación):**
-- POST `/tickets/create-payment-intent` - Iniciar compra
-- POST `/tickets/confirm-payment/:id` - Confirmar pago
-- GET `/tickets/my-tickets` - Mis tickets
-- GET `/tickets/:id` - Ver ticket
-- POST `/tickets/verify` - Validar QR (Admin)
-- GET `/tickets` - Todos los tickets (Admin)
+- POST `/tickets/create-payment-intent` - Iniciar flujo de pago con Stripe
+- POST `/tickets/confirm-payment/:id` - Confirmar pago y generar tickets
+- GET `/tickets/my-tickets` - Listar tickets del usuario actual
+- GET `/tickets/:id` - Ver detalle de un ticket
+- POST `/tickets/verify` - Validar código QR (Admin)
+- GET `/tickets` - Listar todos los tickets del sistema (Admin)
 
 **Usuarios (Solo Admin):**
 - GET `/users` - Listar usuarios
